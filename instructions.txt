@@ -1,0 +1,426 @@
+# SOLSON LLC - ROYAL CRM & INVOICE PORTAL
+# Payment Gateway Setup Instructions
+
+## 🚀 QUICK START GUIDE
+
+This document provides step-by-step instructions for setting up payment processing for your Solson LLC Invoice Portal. Follow these instructions to enable real payment processing with multiple payment gateways.
+
+## 📋 PREREQUISITES
+
+Before setting up payment gateways, ensure you have:
+- Business bank account
+- Business registration documents
+- Tax ID/EIN number
+- Business website (solsonllc.com)
+- SSL certificate for your domain
+
+## 💳 PAYMENT GATEWAY SETUP
+
+### 1. STRIPE SETUP (Credit/Debit Cards)
+
+**Step 1: Create Stripe Account**
+1. Go to https://stripe.com
+2. Click "Start now" and create business account
+3. Provide business information:
+   - Business name: Solson LLC
+   - Business type: Professional Services
+   - Tax ID: [Your EIN]
+   - Bank account details
+
+**Step 2: Get API Keys**
+1. Login to Stripe Dashboard
+2. Go to Developers > API keys
+3. Copy the following keys:
+   - Publishable key (starts with pk_live_)
+   - Secret key (starts with sk_live_)
+
+**Step 3: Set up Webhooks**
+1. Go to Developers > Webhooks
+2. Click "Add endpoint"
+3. Endpoint URL: https://api.solsonllc.com/api/v1/webhooks/stripe
+4. Select events:
+   - checkout.session.completed
+   - payment_intent.succeeded
+   - payment_intent.payment_failed
+5. Copy webhook signing secret (starts with whsec_)
+
+**Step 4: Update Environment Variables**
+```env
+STRIPE_PUBLISHABLE_KEY=pk_live_your_actual_key_here
+STRIPE_SECRET_KEY=sk_live_your_actual_key_here
+STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret_here
+```
+
+### 2. PAYPAL SETUP
+
+**Step 1: Create PayPal Business Account**
+1. Go to https://www.paypal.com/us/business
+2. Sign up for business account
+3. Verify business information
+
+**Step 2: Create App in PayPal Developer**
+1. Go to https://developer.paypal.com
+2. Login with your business account
+3. Go to "My Apps & Credentials"
+4. Click "Create App"
+5. App Name: "Solson LLC Invoice Portal"
+6. Merchant: [Your business account]
+7. Features: Accept Payments
+
+**Step 3: Get API Credentials**
+1. Copy Client ID and Client Secret
+2. Switch to "Live" mode (not Sandbox)
+
+**Step 4: Set up Webhooks**
+1. In your app settings, go to Webhooks
+2. Webhook URL: https://api.solsonllc.com/api/v1/webhooks/paypal
+3. Select events:
+   - PAYMENT.CAPTURE.COMPLETED
+   - PAYMENT.CAPTURE.DENIED
+
+**Step 5: Update Environment Variables**
+```env
+PAYPAL_CLIENT_ID=your_live_client_id_here
+PAYPAL_CLIENT_SECRET=your_live_client_secret_here
+PAYPAL_MODE=live
+PAYPAL_WEBHOOK_ID=your_webhook_id_here
+```
+
+### 3. SQUARE SETUP (Optional)
+
+**Step 1: Create Square Account**
+1. Go to https://squareup.com
+2. Sign up for business account
+3. Complete business verification
+
+**Step 2: Get API Credentials**
+1. Go to Square Developer Dashboard
+2. Create new application
+3. Get Production credentials:
+   - Application ID
+   - Access Token
+   - Location ID
+
+**Step 3: Update Environment Variables**
+```env
+SQUARE_APPLICATION_ID=your_app_id_here
+SQUARE_ACCESS_TOKEN=your_access_token_here
+SQUARE_ENVIRONMENT=production
+SQUARE_LOCATION_ID=your_location_id_here
+```
+
+### 4. ZELLE SETUP (Bank Transfer)
+
+**Step 1: Contact Your Bank**
+1. Call your business bank
+2. Request Zelle Business enrollment
+3. Provide business verification documents
+
+**Step 2: Get Zelle Information**
+1. Zelle email or phone number
+2. Business name as registered
+
+**Step 3: Update Environment Variables**
+```env
+ZELLE_EMAIL=payments@solsonllc.com
+ZELLE_PHONE=+1-555-123-4567
+ZELLE_DISPLAY_NAME=Solson LLC
+```
+
+### 5. WIRE TRANSFER/ACH SETUP
+
+**Step 1: Get Bank Information**
+Contact your bank to get:
+- Routing number
+- Account number
+- SWIFT code (for international)
+- Bank address
+
+**Step 2: Update Environment Variables**
+```env
+BANK_NAME=Your Business Bank Name
+BANK_ROUTING_NUMBER=123456789
+BANK_ACCOUNT_NUMBER=1234567890
+BANK_SWIFT_CODE=BANKUS33XXX
+BANK_ADDRESS=123 Bank Street, New York, NY 10001
+```
+
+## 📧 EMAIL SERVICE SETUP
+
+### SENDGRID SETUP
+
+**Step 1: Create SendGrid Account**
+1. Go to https://sendgrid.com
+2. Sign up for account
+3. Verify your domain (solsonllc.com)
+
+**Step 2: Create API Key**
+1. Go to Settings > API Keys
+2. Create new API key with full access
+3. Copy the API key
+
+**Step 3: Set up Domain Authentication**
+1. Go to Settings > Sender Authentication
+2. Authenticate your domain
+3. Add DNS records to your domain
+
+**Step 4: Update Environment Variables**
+```env
+SENDGRID_API_KEY=SG.your_actual_api_key_here
+SENDGRID_FROM_EMAIL=noreply@solsonllc.com
+SENDGRID_FROM_NAME=Solson LLC
+```
+
+## 🗄️ SUPABASE DATABASE SETUP
+
+**Step 1: Create Supabase Project**
+1. Go to https://supabase.com
+2. Create new project
+3. Choose region closest to your users
+
+**Step 2: Set up Database Schema**
+1. Go to SQL Editor
+2. Run the following SQL to create tables:
+
+```sql
+-- Users table
+CREATE TABLE users (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  role TEXT DEFAULT 'admin',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Clients table
+CREATE TABLE clients (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  company TEXT,
+  email TEXT NOT NULL,
+  address TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Invoices table
+CREATE TABLE invoices (
+  id TEXT PRIMARY KEY,
+  client_id UUID REFERENCES clients(id),
+  subtotal DECIMAL(10,2) NOT NULL,
+  tax DECIMAL(10,2) NOT NULL,
+  tax_rate DECIMAL(5,2) NOT NULL,
+  discount DECIMAL(10,2) DEFAULT 0,
+  total DECIMAL(10,2) NOT NULL,
+  status TEXT DEFAULT 'unpaid',
+  payment_method TEXT NOT NULL,
+  notes TEXT,
+  public_link_token UUID DEFAULT gen_random_uuid(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  due_date TIMESTAMP WITH TIME ZONE,
+  paid_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Invoice items table
+CREATE TABLE invoice_items (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  invoice_id TEXT REFERENCES invoices(id),
+  description TEXT NOT NULL,
+  quantity INTEGER NOT NULL,
+  unit_price DECIMAL(10,2) NOT NULL,
+  total DECIMAL(10,2) NOT NULL
+);
+
+-- Payments table
+CREATE TABLE payments (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  invoice_id TEXT REFERENCES invoices(id),
+  gateway TEXT NOT NULL,
+  gateway_transaction_id TEXT,
+  amount DECIMAL(10,2) NOT NULL,
+  status TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+**Step 3: Set up Row Level Security**
+```sql
+-- Enable RLS
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
+ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE invoice_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
+
+-- Admin policies
+CREATE POLICY "Admin full access" ON users FOR ALL TO authenticated USING (true);
+CREATE POLICY "Admin full access" ON clients FOR ALL TO authenticated USING (true);
+CREATE POLICY "Admin full access" ON invoices FOR ALL TO authenticated USING (true);
+CREATE POLICY "Admin full access" ON invoice_items FOR ALL TO authenticated USING (true);
+CREATE POLICY "Admin full access" ON payments FOR ALL TO authenticated USING (true);
+
+-- Public invoice access
+CREATE POLICY "Public invoice access" ON invoices FOR SELECT TO anon 
+USING (public_link_token = current_setting('request.jwt.claims', true)::json->>'token');
+```
+
+**Step 4: Get API Keys**
+1. Go to Settings > API
+2. Copy:
+   - Project URL
+   - Anon public key
+   - Service role key
+
+**Step 5: Update Environment Variables**
+```env
+SUPABASE_URL=https://your-project-id.supabase.co
+SUPABASE_ANON_KEY=your_anon_key_here
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
+```
+
+## 🔐 SECURITY SETUP
+
+### SSL CERTIFICATE
+1. Use Let's Encrypt or your hosting provider's SSL
+2. Ensure all traffic is HTTPS
+3. Set up automatic renewal
+
+### ENVIRONMENT VARIABLES
+1. Never commit .env files to version control
+2. Use different keys for development/production
+3. Rotate keys regularly
+
+### WEBHOOK SECURITY
+1. Always verify webhook signatures
+2. Use HTTPS endpoints only
+3. Implement rate limiting
+
+## 🚀 DEPLOYMENT
+
+### BACKEND DEPLOYMENT (Recommended: Render)
+
+**Step 1: Prepare for Deployment**
+1. Create Dockerfile:
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+EXPOSE 3001
+CMD ["npm", "start"]
+```
+
+**Step 2: Deploy to Render**
+1. Go to https://render.com
+2. Connect your GitHub repository
+3. Create new Web Service
+4. Set environment variables in Render dashboard
+5. Deploy
+
+**Step 3: Set up Custom Domain**
+1. Add custom domain in Render
+2. Update DNS records
+3. Enable automatic SSL
+
+### FRONTEND DEPLOYMENT (Recommended: Netlify)
+
+**Step 1: Build for Production**
+```bash
+npm run build
+```
+
+**Step 2: Deploy to Netlify**
+1. Go to https://netlify.com
+2. Drag and drop dist folder
+3. Set up custom domain
+4. Configure redirects in _redirects file
+
+## 📊 MONITORING SETUP
+
+### SENTRY ERROR TRACKING
+1. Create account at https://sentry.io
+2. Create new project
+3. Get DSN
+4. Update environment variables:
+```env
+SENTRY_DSN=https://your-sentry-dsn@sentry.io/project-id
+```
+
+### UPTIME MONITORING
+1. Set up monitoring with UptimeRobot or Pingdom
+2. Monitor both frontend and backend
+3. Set up alerts for downtime
+
+## ✅ TESTING CHECKLIST
+
+Before going live, test:
+
+### Payment Processing
+- [ ] Stripe credit card payments
+- [ ] PayPal payments
+- [ ] Webhook receipt and processing
+- [ ] Failed payment handling
+- [ ] Refund processing
+
+### Email Notifications
+- [ ] Invoice sent emails
+- [ ] Payment confirmation emails
+- [ ] Overdue reminders
+- [ ] Email deliverability
+
+### Security
+- [ ] HTTPS enforcement
+- [ ] Webhook signature verification
+- [ ] Input validation
+- [ ] SQL injection protection
+- [ ] XSS protection
+
+### Performance
+- [ ] Page load times
+- [ ] Database query optimization
+- [ ] CDN setup for static assets
+- [ ] Caching implementation
+
+## 🆘 TROUBLESHOOTING
+
+### Common Issues
+
+**Webhook Not Receiving**
+1. Check webhook URL is accessible
+2. Verify SSL certificate
+3. Check firewall settings
+4. Validate webhook signature
+
+**Payment Failures**
+1. Check API keys are correct
+2. Verify account is in live mode
+3. Check business verification status
+4. Review payment gateway logs
+
+**Email Not Sending**
+1. Verify domain authentication
+2. Check API key permissions
+3. Review sender reputation
+4. Check spam filters
+
+### Support Contacts
+
+- **Stripe Support**: https://support.stripe.com
+- **PayPal Support**: https://www.paypal.com/us/smarthelp/contact-us
+- **SendGrid Support**: https://support.sendgrid.com
+- **Supabase Support**: https://supabase.com/support
+
+## 📞 NEED HELP?
+
+If you need assistance with setup:
+
+**Email**: support@solsonllc.com
+**Phone**: (555) 123-4567
+**Documentation**: https://docs.solsonllc.com
+
+---
+
+**Solson LLC** - Professional Invoice Management Made Simple
+
+Last Updated: January 2025
+Version: 1.0.0

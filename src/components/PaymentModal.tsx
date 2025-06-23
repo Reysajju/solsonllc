@@ -175,7 +175,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ invoice, onClose, on
         {errors.cardNumber && (
           <p className="mt-1 text-sm text-red-600">{errors.cardNumber}</p>
         )}
-        <p className="mt-1 text-xs text-slate-500">Use test card: 4242 4242 4242 4242</p>
+        <p className="mt-1 text-xs text-slate-500">Enter your actual card number for real payment processing</p>
       </div>
       
       <div className="grid grid-cols-2 gap-4">
@@ -291,7 +291,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ invoice, onClose, on
         {errors.paypalEmail && (
           <p className="mt-1 text-sm text-red-600">{errors.paypalEmail}</p>
         )}
-        <p className="mt-1 text-xs text-slate-500">Use any valid email for testing</p>
+        <p className="mt-1 text-xs text-slate-500">Enter your actual PayPal email for real payment processing</p>
       </div>
       
       <div className="flex items-center justify-center pt-4">
@@ -349,7 +349,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ invoice, onClose, on
         {errors.bankAccount && (
           <p className="mt-1 text-sm text-red-600">{errors.bankAccount}</p>
         )}
-        <p className="mt-1 text-xs text-slate-500">Use test account: 1234567890</p>
+        <p className="mt-1 text-xs text-slate-500">Enter your actual bank account number</p>
       </div>
       
       <div>
@@ -369,7 +369,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ invoice, onClose, on
         {errors.routingNumber && (
           <p className="mt-1 text-sm text-red-600">{errors.routingNumber}</p>
         )}
-        <p className="mt-1 text-xs text-slate-500">Use test routing: 123456789</p>
+        <p className="mt-1 text-xs text-slate-500">Enter your bank's routing number</p>
       </div>
       
       <div>
@@ -432,14 +432,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ invoice, onClose, on
         </div>
         
         <div className="p-6">
-          {/* Demo Warning */}
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+          {/* Production Notice */}
+          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-6">
             <div className="flex items-start">
-              <AlertTriangle className="h-5 w-5 text-amber-600 mr-3 mt-0.5 flex-shrink-0" />
+              <Shield className="h-5 w-5 text-emerald-600 mr-3 mt-0.5 flex-shrink-0" />
               <div>
-                <h3 className="text-sm font-semibold text-amber-800">Demo Payment System</h3>
-                <p className="text-xs text-amber-700 mt-1">
-                  This is a testing environment. No real charges will be made. Use the provided test data for demonstration purposes.
+                <h3 className="text-sm font-semibold text-emerald-800">Secure Payment Processing</h3>
+                <p className="text-xs text-emerald-700 mt-1">
+                  This is a live payment system. Real charges will be processed. Your payment information is encrypted and secure.
                 </p>
               </div>
             </div>
