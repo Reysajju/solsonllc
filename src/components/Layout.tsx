@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   Crown, 
@@ -15,6 +15,8 @@ import {
   ChevronDown,
   Sparkles
 } from 'lucide-react';
+import { useAuthContext } from './AuthProvider';
+import { supabase } from '../lib/supabase';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -22,10 +24,48 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
+  const { user, signOut } = useAuthContext();
   const isPublicInvoice = location.pathname.startsWith('/invoice/');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      if (user) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        setUserProfile(data);
+      }
+    };
+    loadUserProfile();
+  }, [user]);
+
+  // Fetch notifications from Supabase
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      if (user) {
+        const { data, error } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+        if (!error && data) setNotifications(data);
+      }
+    };
+    fetchNotifications();
+    // Optionally, subscribe to realtime changes
+    const channel = supabase
+      .channel('public:notifications')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${user?.id}` }, fetchNotifications)
+      .subscribe();
+    return () => { channel.unsubscribe(); };
+  }, [user]);
 
   if (isPublicInvoice) {
     return <div className="min-h-screen bg-gradient-to-br from-royal-50 to-primary-50">{children}</div>;
@@ -64,11 +104,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
   };
 
-  const notifications = [
-    { id: 1, title: 'Payment Received', message: 'Invoice #INV-20250101-0001 has been paid', time: '2 min ago', type: 'success' },
-    { id: 2, title: 'Invoice Overdue', message: 'Invoice #INV-20241215-0003 is now overdue', time: '1 hour ago', type: 'warning' },
-    { id: 3, title: 'New Client Added', message: 'John Smith has been added to your client list', time: '3 hours ago', type: 'info' },
-  ];
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
+  // Calculate displayName and isAdmin for user menu
+  const displayName = userProfile?.full_name || user?.email?.split('@')[0] || 'User';
+  const isAdmin = userProfile?.role === 'admin';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-royal-50 via-white to-primary-50">
@@ -161,39 +203,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               })}
             </div>
           </nav>
-
-          {/* User Profile Section */}
-          <div className="absolute bottom-6 left-4 right-4">
-            <div className={`bg-gradient-to-r from-royal-50 to-primary-50 rounded-xl p-4 border border-royal-200 ${
-              isSidebarCollapsed ? 'text-center' : ''
-            }`}>
-              <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'space-x-3'}`}>
-                <div className="h-10 w-10 bg-gradient-to-br from-primary-600 to-primary-700 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-                  SL
-                </div>
-                <div className={`transition-all duration-300 ${
-                  isSidebarCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100 flex-1'
-                }`}>
-                  <div className="font-semibold text-royal-900 text-sm">Solson LLC Admin</div>
-                  <div className="text-xs text-royal-600">sajjadr742@gmail.com</div>
-                </div>
-              </div>
-              
-              <button 
-                className={`mt-3 w-full flex items-center justify-center px-3 py-2 text-sm font-medium text-royal-600 rounded-lg hover:bg-white hover:text-royal-900 transition-all duration-200 group ${
-                  isSidebarCollapsed ? 'px-2' : ''
-                }`}
-                title={isSidebarCollapsed ? 'Sign Out' : ''}
-              >
-                <LogOut className={`h-4 w-4 ${isSidebarCollapsed ? 'mx-auto' : 'mr-2'}`} />
-                <span className={`transition-all duration-300 ${
-                  isSidebarCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'
-                }`}>
-                  Sign Out
-                </span>
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Main Content */}
@@ -230,7 +239,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                       <h3 className="font-semibold text-royal-900">Notifications</h3>
                     </div>
                     <div className="max-h-80 overflow-y-auto">
-                      {notifications.map((notification) => (
+                      {notifications.length === 0 ? (
+                        <div className="p-4 text-slate-500 text-center">No notifications yet.</div>
+                      ) : notifications.map((notification) => (
                         <div key={notification.id} className="p-4 border-b border-royal-100 hover:bg-royal-50 transition-colors">
                           <div className="flex items-start space-x-3">
                             <div className={`w-2 h-2 rounded-full mt-2 ${
@@ -240,7 +251,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                             <div className="flex-1">
                               <h4 className="font-medium text-royal-900 text-sm">{notification.title}</h4>
                               <p className="text-royal-600 text-sm mt-1">{notification.message}</p>
-                              <p className="text-royal-500 text-xs mt-2">{notification.time}</p>
+                              <p className="text-royal-500 text-xs mt-2">{new Date(notification.created_at).toLocaleString()}</p>
                             </div>
                           </div>
                         </div>
@@ -261,8 +272,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   className="flex items-center space-x-3 p-2 rounded-xl hover:bg-royal-50 transition-colors"
                 >
-                  <div className="h-8 w-8 bg-gradient-to-br from-primary-600 to-primary-700 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-                    SL
+                  <div className="h-8 w-8 bg-gradient-to-br from-primary-600 to-primary-700 rounded-lg flex items-center justify-center text-white font-bold text-sm relative">
+                    {displayName.charAt(0).toUpperCase()}
+                    {isAdmin && (
+                      <div className="absolute -top-1 -right-1 h-3 w-3 bg-gold-500 rounded-full flex items-center justify-center">
+                        <Crown className="h-1.5 w-1.5 text-white" />
+                      </div>
+                    )}
                   </div>
                   <ChevronDown className="h-4 w-4 text-royal-600" />
                 </button>
@@ -279,7 +295,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                         <span className="text-royal-900 text-sm">Settings</span>
                       </button>
                       <hr className="my-2 border-royal-200" />
-                      <button className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-red-50 text-red-600 transition-colors">
+                      <button 
+                        onClick={handleSignOut}
+                        className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-red-50 text-red-600 transition-colors"
+                      >
                         <LogOut className="h-4 w-4" />
                         <span className="text-sm">Sign Out</span>
                       </button>

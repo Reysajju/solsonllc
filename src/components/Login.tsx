@@ -1,36 +1,40 @@
 import React, { useState } from 'react';
-import { Crown, Mail, Lock, ArrowRight, Sparkles, Shield, Eye, EyeOff } from 'lucide-react';
+import { Crown, Mail, Lock, ArrowRight, Sparkles, Shield, Eye, EyeOff, UserPlus } from 'lucide-react';
+import { useAuthContext } from './AuthProvider';
 
-interface LoginProps {
-  onLogin: () => void;
-}
+export const Login: React.FC = () => {
+  const { signIn, signUp } = useAuthContext();
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
 
-export const Login: React.FC<LoginProps> = ({ onLogin }) => {
-  const [email, setEmail] = useState<string>('sajjadr742@gmail.com');
-  const [password, setPassword] = useState<string>('SolSon123456789.@');
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [rememberMe, setRememberMe] = useState<boolean>(false);
-  const [error, setError] = useState<string>('');
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
-    // Validate credentials
-    if (email === 'sajjadr742@gmail.com' && password === 'SolSon123456789.@') {
-      // Simulate login delay
-      setTimeout(() => {
-        setIsLoading(false);
-        onLogin();
-      }, 1500);
-    } else {
-      setTimeout(() => {
-        setIsLoading(false);
-        setError('Invalid email or password. Please check your credentials.');
-      }, 1500);
+    try {
+      if (isSignUp) {
+        const { error } = await signUp(email, password, fullName);
+        if (error) throw error;
+      } else {
+        const { error } = await signIn(email, password);
+        if (error) throw error;
+      }
+    } catch (error: any) {
+      setError(error.message || 'An error occurred during authentication');
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleDemoLogin = () => {
+    setEmail('sajjadr742@gmail.com');
+    setPassword('sAjjjAd12#$%');
   };
 
   return (
@@ -59,12 +63,54 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </div>
         </div>
 
-        {/* Login Form */}
+        {/* Login/Signup Form */}
         <div className="glass-effect rounded-3xl shadow-premium border border-white border-opacity-20 p-8 animate-slide-up backdrop-blur-xl">
+          <div className="flex items-center justify-center mb-6">
+            <button
+              onClick={() => setIsSignUp(false)}
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                !isSignUp 
+                  ? 'bg-white bg-opacity-20 text-white' 
+                  : 'text-primary-300 hover:text-white'
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => setIsSignUp(true)}
+              className={`px-4 py-2 rounded-lg font-medium transition-all ml-2 ${
+                isSignUp 
+                  ? 'bg-white bg-opacity-20 text-white' 
+                  : 'text-primary-300 hover:text-white'
+              }`}
+            >
+              Sign Up
+            </button>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className="bg-red-500 bg-opacity-10 border border-red-400 text-red-300 px-4 py-3 rounded-xl text-sm">
                 {error}
+              </div>
+            )}
+
+            {isSignUp && (
+              <div>
+                <label className="block text-sm font-semibold text-white mb-3">
+                  Full Name
+                </label>
+                <div className="relative">
+                  <UserPlus className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-primary-300" />
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="pl-12 block w-full rounded-xl border-0 bg-white bg-opacity-10 backdrop-blur-sm text-white placeholder-primary-300 shadow-sm focus:bg-opacity-20 focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 transition-all duration-200 py-4"
+                    placeholder="Enter your full name"
+                    required={isSignUp}
+                  />
+                </div>
               </div>
             )}
 
@@ -109,27 +155,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 text-gold-500 focus:ring-gold-400 border-primary-300 rounded bg-white bg-opacity-10"
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-primary-200">
-                  Remember me
-                </label>
-              </div>
-              <div className="text-sm">
-                <a href="#" className="text-gold-400 hover:text-gold-300 transition-colors">
-                  Forgot password?
-                </a>
-              </div>
-            </div>
-
             <button
               type="submit"
               disabled={isLoading}
@@ -138,11 +163,11 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               {isLoading ? (
                 <>
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-900 mr-3"></div>
-                  Authenticating...
+                  {isSignUp ? 'Creating Account...' : 'Signing In...'}
                 </>
               ) : (
                 <>
-                  Sign In to Portal
+                  {isSignUp ? 'Create Account' : 'Sign In to Portal'}
                   <ArrowRight className="ml-3 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </>
               )}
@@ -150,14 +175,26 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </form>
 
           {/* Admin Credentials */}
-          <div className="mt-8 p-4 bg-white bg-opacity-5 rounded-xl border border-white border-opacity-10">
-            <div className="flex items-center mb-3">
-              <div className="h-2 w-2 bg-emerald-400 rounded-full mr-2 animate-pulse"></div>
-              <p className="text-xs text-primary-200 font-semibold uppercase tracking-wider">Admin Access</p>
+          {!isSignUp && (
+            <div className="mt-8 p-4 bg-white bg-opacity-5 rounded-xl border border-white border-opacity-10">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center">
+                  <div className="h-2 w-2 bg-emerald-400 rounded-full mr-2 animate-pulse"></div>
+                  <p className="text-xs text-primary-200 font-semibold uppercase tracking-wider">Admin Access</p>
+                </div>
+                <button
+                  onClick={handleDemoLogin}
+                  className="text-xs text-gold-400 hover:text-gold-300 font-medium transition-colors"
+                >
+                  Use Admin Login
+                </button>
+              </div>
+              <div className="space-y-1 text-xs text-primary-300">
+                <p>Email: sajjadr742@gmail.com</p>
+                <p>Password: sAjjjAd12#$%</p>
+              </div>
             </div>
-            <div className="space-y-1">
-            </div>
-          </div>
+          )}
 
           {/* Security Features */}
           <div className="mt-6 flex items-center justify-center space-x-6 text-xs text-primary-300">

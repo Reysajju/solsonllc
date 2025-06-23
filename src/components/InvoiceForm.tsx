@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Trash2, Save, Calendar } from 'lucide-react';
-import { Client, Invoice, InvoiceItem } from '../types';
-import { loadClients, saveClients, loadInvoices, saveInvoices, generateInvoiceId, generateClientId } from '../utils/storage';
+import { Client, InvoiceItem } from '../types';
+import { clientService } from '../services/clientService';
+import { invoiceService } from '../services/invoiceService';
+import { LoadingSpinner } from './LoadingSpinner';
 
 export const InvoiceForm: React.FC = () => {
   const navigate = useNavigate();
   const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string>('');
   const [isNewClient, setIsNewClient] = useState<boolean>(false);
   const [newClient, setNewClient] = useState<Partial<Client>>({
@@ -23,7 +27,7 @@ export const InvoiceForm: React.FC = () => {
   const [taxRate, setTaxRate] = useState<number>(8.5);
   const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('percentage');
   const [discountValue, setDiscountValue] = useState<number>(0);
-  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'paypal' | 'bank-transfer'>('stripe');
+  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'paypal' | 'bank-transfer' | 'zelle' | 'wire'>('stripe');
   const [notes, setNotes] = useState<string>('');
   const [dueDate, setDueDate] = useState<string>(() => {
     // Default to 30 days from now
@@ -33,8 +37,18 @@ export const InvoiceForm: React.FC = () => {
   });
 
   useEffect(() => {
-    const loadedClients = loadClients();
-    setClients(loadedClients);
+    const loadClients = async () => {
+      try {
+        const clientsData = await clientService.getUserClients();
+        setClients(clientsData);
+      } catch (error) {
+        console.error('Error loading clients:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadClients();
   }, []);
 
   const addItem = () => {
@@ -90,60 +104,48 @@ export const InvoiceForm: React.FC = () => {
     return subtotalAfterDiscount + tax;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitting(true);
 
-    let clientToUse: Client;
+    try {
+      let clientToUse: Client;
 
-    if (isNewClient) {
-      // Create new client
-      clientToUse = {
-        id: generateClientId(),
-        name: newClient.name!,
-        company: newClient.company,
-        email: newClient.email!,
-        address: newClient.address!,
-        createdAt: new Date(),
-      };
+      if (isNewClient) {
+        // Create new client
+        clientToUse = await clientService.createClient({
+          name: newClient.name!,
+          company: newClient.company,
+          email: newClient.email!,
+          address: newClient.address!,
+        });
 
-      const updatedClients = [...clients, clientToUse];
-      setClients(updatedClients);
-      saveClients(updatedClients);
-    } else {
-      // Use existing client
-      clientToUse = clients.find(c => c.id === selectedClientId)!;
+        // Update clients list
+        setClients([clientToUse, ...clients]);
+      } else {
+        // Use existing client
+        clientToUse = clients.find(c => c.id === selectedClientId)!;
+      }
+
+      // Create invoice
+      const invoice = await invoiceService.createInvoice({
+        clientId: clientToUse.id,
+        items: items.filter(item => item.description.trim() !== ''),
+        taxRate,
+        discountType,
+        discountValue,
+        paymentMethod,
+        notes: notes.trim() || undefined,
+        dueDate: new Date(dueDate),
+      });
+
+      navigate(`/invoices/${invoice.id}`);
+    } catch (error) {
+      console.error('Error creating invoice:', error);
+      alert('Failed to create invoice. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
-
-    const subtotal = calculateSubtotal();
-    const discount = calculateDiscount(subtotal);
-    const subtotalAfterDiscount = subtotal - discount;
-    const tax = calculateTax(subtotalAfterDiscount);
-    const total = subtotalAfterDiscount + tax;
-
-    const newInvoice: Invoice = {
-      id: generateInvoiceId(),
-      clientId: clientToUse.id,
-      client: clientToUse,
-      items: items.filter(item => item.description.trim() !== ''),
-      subtotal,
-      tax,
-      taxRate,
-      discount,
-      discountType,
-      discountValue,
-      total,
-      status: 'unpaid',
-      paymentMethod,
-      notes: notes.trim() || undefined,
-      createdAt: new Date(),
-      dueDate: new Date(dueDate),
-    };
-
-    const existingInvoices = loadInvoices();
-    const updatedInvoices = [newInvoice, ...existingInvoices];
-    saveInvoices(updatedInvoices);
-
-    navigate(`/invoices/${newInvoice.id}`);
   };
 
   const formatCurrency = (amount: number) => {
@@ -152,6 +154,14 @@ export const InvoiceForm: React.FC = () => {
       currency: 'USD',
     }).format(amount);
   };
+
+  if (loading) {
+    return (
+      <div className="p-8 flex items-center justify-center">
+        <LoadingSpinner size="lg" text="Loading clients..." />
+      </div>
+    );
+  }
 
   const subtotal = calculateSubtotal();
   const discount = calculateDiscount(subtotal);
@@ -437,12 +447,14 @@ export const InvoiceForm: React.FC = () => {
               </label>
               <select
                 value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value as 'stripe' | 'paypal' | 'bank-transfer')}
+                onChange={(e) => setPaymentMethod(e.target.value as any)}
                 className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-royal-500 focus:ring-royal-500"
               >
                 <option value="stripe">Credit/Debit Card (Stripe)</option>
                 <option value="paypal">PayPal</option>
                 <option value="bank-transfer">Bank Transfer</option>
+                <option value="zelle">Zelle</option>
+                <option value="wire">Wire Transfer</option>
               </select>
             </div>
             <div>
@@ -464,10 +476,20 @@ export const InvoiceForm: React.FC = () => {
         <div className="flex justify-end">
           <button
             type="submit"
-            className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-royal-600 hover:bg-royal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-royal-500 transition-colors shadow-lg hover:shadow-xl"
+            disabled={submitting}
+            className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-royal-600 hover:bg-royal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-royal-500 transition-colors shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Save className="mr-2 h-5 w-5" />
-            Generate Invoice
+            {submitting ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                Creating Invoice...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-5 w-5" />
+                Generate Invoice
+              </>
+            )}
           </button>
         </div>
       </form>

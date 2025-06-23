@@ -33,6 +33,7 @@ export interface Invoice {
   createdAt: Date;
   dueDate?: Date;
   paidAt?: Date;
+  public_token?: string;
 }
 
 export interface DashboardStats {

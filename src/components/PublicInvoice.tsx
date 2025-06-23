@@ -2,34 +2,43 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { CreditCard, Download, CheckCircle2, AlertCircle, X, Building2, MapPin, Mail, Phone, Clock, Calendar } from 'lucide-react';
 import { Invoice } from '../types';
-import { loadInvoices, saveInvoices } from '../utils/storage';
+import { invoiceService } from '../services/invoiceService';
+import { paymentService } from '../services/paymentService';
 import { generateInvoicePDF } from '../utils/pdfGenerator';
 import { PaymentModal } from './PaymentModal';
+import { LoadingSpinner } from './LoadingSpinner';
 
 export const PublicInvoice: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { token } = useParams<{ token: string }>();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
   const [paymentResult, setPaymentResult] = useState<'success' | 'failed' | null>(null);
   const [showNotification, setShowNotification] = useState<boolean>(false);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
   useEffect(() => {
-    if (id) {
-      const invoices = loadInvoices();
-      const foundInvoice = invoices.find(inv => inv.id === id);
-      if (foundInvoice) {
-        // Convert date strings back to Date objects
-        const processedInvoice = {
-          ...foundInvoice,
-          createdAt: new Date(foundInvoice.createdAt),
-          dueDate: foundInvoice.dueDate ? new Date(foundInvoice.dueDate) : undefined,
-          paidAt: foundInvoice.paidAt ? new Date(foundInvoice.paidAt) : undefined,
-        };
-        setInvoice(processedInvoice);
+    const loadInvoice = async () => {
+      if (!token) {
+        setError('Invalid invoice link');
+        setLoading(false);
+        return;
       }
-    }
-  }, [id]);
+
+      try {
+        const invoiceData = await invoiceService.getInvoiceByToken(token);
+        setInvoice(invoiceData);
+      } catch (error: any) {
+        console.error('Error loading invoice:', error);
+        setError('Invoice not found or has been removed');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadInvoice();
+  }, [token]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -43,6 +52,8 @@ export const PublicInvoice: React.FC = () => {
       stripe: 'Credit/Debit Card',
       paypal: 'PayPal',
       'bank-transfer': 'Bank Transfer',
+      zelle: 'Zelle',
+      wire: 'Wire Transfer',
     };
     return labels[method as keyof typeof labels] || method;
   };
@@ -52,48 +63,45 @@ export const PublicInvoice: React.FC = () => {
     setShowPaymentModal(true);
   };
 
-  const handlePaymentSubmit = (paymentData: any) => {
+  const handlePaymentSubmit = async (paymentData: any) => {
     if (!invoice) return;
     
     setIsProcessing(true);
     setShowPaymentModal(false);
 
-    // Simulate payment processing with realistic delay
-    setTimeout(() => {
-      // Simulate random success/failure (90% success rate for better UX)
-      const isSuccess = Math.random() > 0.1;
-      
-      if (isSuccess) {
-        // Update invoice status to paid
-        const invoices = loadInvoices();
-        const updatedInvoices = invoices.map(inv => 
-          inv.id === invoice.id ? { ...inv, status: 'paid' as const, paidAt: new Date() } : inv
-        );
-        saveInvoices(updatedInvoices);
-        setInvoice({ ...invoice, status: 'paid', paidAt: new Date() });
+    try {
+      const result = await paymentService.processPayment(invoice.id, {
+        ...paymentData,
+        gateway: invoice.paymentMethod,
+        amount: invoice.total,
+      });
+
+      if (result.success) {
+        // Reload invoice to get updated status
+        const updatedInvoice = await invoiceService.getInvoiceByToken(token!);
+        setInvoice(updatedInvoice);
         setPaymentResult('success');
       } else {
-        // Update invoice status to failed
-        const invoices = loadInvoices();
-        const updatedInvoices = invoices.map(inv => 
-          inv.id === invoice.id ? { ...inv, status: 'failed' as const } : inv
-        );
-        saveInvoices(updatedInvoices);
-        setInvoice({ ...invoice, status: 'failed' });
+        // Reload invoice to get updated status
+        const updatedInvoice = await invoiceService.getInvoiceByToken(token!);
+        setInvoice(updatedInvoice);
         setPaymentResult('failed');
       }
-      
+    } catch (error) {
+      console.error('Payment error:', error);
+      setPaymentResult('failed');
+    } finally {
       setIsProcessing(false);
       setShowNotification(true);
       
       // Auto-hide failure notifications after 7 seconds
-      if (!isSuccess) {
+      if (paymentResult === 'failed') {
         setTimeout(() => {
           setShowNotification(false);
           setPaymentResult(null);
         }, 7000);
       }
-    }, 3000); // 3 second processing simulation
+    }
   };
 
   const closeNotification = () => {
@@ -121,7 +129,15 @@ export const PublicInvoice: React.FC = () => {
     return diffDays;
   };
 
-  if (!invoice) {
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <LoadingSpinner size="xl" text="Loading invoice..." />
+      </div>
+    );
+  }
+
+  if (error || !invoice) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center animate-fade-in">
@@ -129,7 +145,7 @@ export const PublicInvoice: React.FC = () => {
             <AlertCircle className="h-8 w-8 text-slate-400" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900 mb-4">Invoice Not Found</h1>
-          <p className="text-slate-600">The invoice you're looking for doesn't exist or has been removed.</p>
+          <p className="text-slate-600">{error || 'The invoice you\'re looking for doesn\'t exist or has been removed.'}</p>
         </div>
       </div>
     );
@@ -220,7 +236,7 @@ export const PublicInvoice: React.FC = () => {
                   </div>
                 </div>
                 <p className="text-xs text-slate-500 mt-4">
-                  ⚠️ This is a demo payment system. No real charges will be made.
+                  🔒 This is a secure payment system. Your information is encrypted and protected.
                 </p>
               </div>
             </div>
@@ -482,9 +498,6 @@ export const PublicInvoice: React.FC = () => {
                       <CreditCard className="mr-3 h-6 w-6" />
                       {isOverdue(invoice.dueDate) ? 'Pay Overdue Amount' : 'Pay'} {formatCurrency(invoice.total)} via {getPaymentMethodLabel(invoice.paymentMethod)}
                     </button>
-                    <p className="text-xs text-slate-500 text-center max-w-md">
-                      ⚠️ This is a demo payment system for testing purposes only. No real charges will be made to your account.
-                    </p>
                   </>
                 ) : (
                   <div className="text-center">

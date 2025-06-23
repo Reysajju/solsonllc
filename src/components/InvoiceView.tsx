@@ -2,45 +2,56 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, CheckCircle, Building2, MapPin, Mail, Phone, Copy, Check, Calendar, Clock, Download } from 'lucide-react';
 import { Invoice } from '../types';
-import { loadInvoices, saveInvoices, getInvoicePaymentLink } from '../utils/storage';
+import { invoiceService } from '../services/invoiceService';
 import { generateInvoicePDF } from '../utils/pdfGenerator';
+import { LoadingSpinner } from './LoadingSpinner';
 
 export const InvoiceView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<boolean>(false);
 
   useEffect(() => {
-    if (id) {
-      const invoices = loadInvoices();
-      const foundInvoice = invoices.find(inv => inv.id === id);
-      if (foundInvoice) {
-        // Convert date strings back to Date objects
-        const processedInvoice = {
-          ...foundInvoice,
-          createdAt: new Date(foundInvoice.createdAt),
-          dueDate: foundInvoice.dueDate ? new Date(foundInvoice.dueDate) : undefined,
-          paidAt: foundInvoice.paidAt ? new Date(foundInvoice.paidAt) : undefined,
-        };
-        setInvoice(processedInvoice);
+    const loadInvoice = async () => {
+      if (!id) {
+        setError('Invalid invoice ID');
+        setLoading(false);
+        return;
       }
-    }
+
+      try {
+        const invoiceData = await invoiceService.getInvoiceById(id);
+        setInvoice(invoiceData);
+      } catch (error: any) {
+        console.error('Error loading invoice:', error);
+        setError('Invoice not found');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadInvoice();
   }, [id]);
 
-  const markAsPaid = () => {
+  const markAsPaid = async () => {
     if (invoice) {
-      const invoices = loadInvoices();
-      const updatedInvoices = invoices.map(inv => 
-        inv.id === invoice.id ? { ...inv, status: 'paid' as const, paidAt: new Date() } : inv
-      );
-      saveInvoices(updatedInvoices);
-      setInvoice({ ...invoice, status: 'paid', paidAt: new Date() });
+      try {
+        await invoiceService.updateInvoiceStatus(invoice.id, 'paid');
+        setInvoice({ ...invoice, status: 'paid', paidAt: new Date() });
+      } catch (error) {
+        console.error('Error updating invoice status:', error);
+      }
     }
   };
 
   const copyPaymentLink = async () => {
     if (invoice) {
-      const paymentLink = getInvoicePaymentLink(invoice.id);
+      // Use public_token if available
+      const paymentLink = invoice.public_token
+        ? `${window.location.origin}/invoice/${invoice.public_token}`
+        : `${window.location.origin}/invoice/${invoice.id}`;
       try {
         await navigator.clipboard.writeText(paymentLink);
         setCopied(true);
@@ -121,12 +132,20 @@ export const InvoiceView: React.FC = () => {
     return diffDays;
   };
 
-  if (!invoice) {
+  if (loading) {
+    return (
+      <div className="p-8 flex items-center justify-center">
+        <LoadingSpinner size="lg" text="Loading invoice..." />
+      </div>
+    );
+  }
+
+  if (error || !invoice) {
     return (
       <div className="p-8">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-slate-900 mb-4">Invoice Not Found</h1>
-          <p className="text-slate-600 mb-6">The invoice you're looking for doesn't exist.</p>
+          <p className="text-slate-600 mb-6">{error || 'The invoice you\'re looking for doesn\'t exist.'}</p>
           <Link
             to="/invoices"
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-royal-600 hover:bg-royal-700"
@@ -139,7 +158,10 @@ export const InvoiceView: React.FC = () => {
     );
   }
 
-  const paymentLink = getInvoicePaymentLink(invoice.id);
+  // Use public_token for sharing
+  const paymentLink = invoice.public_token
+    ? `${window.location.origin}/invoice/${invoice.public_token}`
+    : `${window.location.origin}/invoice/${invoice.id}`;
   const daysUntilDue = getDaysUntilDue(invoice.dueDate);
 
   return (
@@ -245,8 +267,8 @@ export const InvoiceView: React.FC = () => {
 
       {/* Payment Link Section */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-        <h3 className="text-lg font-semibold text-slate-900 mb-4">Payment Link</h3>
-        <p className="text-slate-600 mb-4">Share this link with your client to allow them to pay the invoice online:</p>
+        <h3 className="text-lg font-semibold text-slate-900 mb-4">Shareable Payment Link</h3>
+        <p className="text-slate-600 mb-4">Share this link with your client to allow them to pay the invoice online from anywhere in the world:</p>
         <div className="flex items-center space-x-3">
           <div className="flex-1 bg-slate-50 rounded-lg p-3 border">
             <code className="text-sm text-slate-700 break-all">{paymentLink}</code>

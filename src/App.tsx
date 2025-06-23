@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuthContext } from './components/AuthProvider';
 import { Layout } from './components/Layout';
 import { Login } from './components/Login';
 import { Dashboard } from './components/Dashboard';
@@ -9,22 +10,18 @@ import { InvoiceView } from './components/InvoiceView';
 import { PublicInvoice } from './components/PublicInvoice';
 import { ClientList } from './components/ClientList';
 
-function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-
-  const handleLogin = () => {
-    setIsAuthenticated(true);
-  };
+const AppRoutes: React.FC = () => {
+  const { user } = useAuthContext();
 
   return (
     <Router>
       <Routes>
         {/* Public Invoice Route (no authentication required) */}
-        <Route path="/invoice/:id" element={<PublicInvoice />} />
+        <Route path="/invoice/:token" element={<PublicInvoice />} />
 
         {/* Authentication Check */}
-        {!isAuthenticated ? (
-          <Route path="*" element={<Login onLogin={handleLogin} />} />
+        {!user ? (
+          <Route path="*" element={<Login />} />
         ) : (
           <Route path="/*" element={
             <Layout>
@@ -42,6 +39,14 @@ function App() {
         )}
       </Routes>
     </Router>
+  );
+};
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
   );
 }
 

@@ -275,6 +275,19 @@ export const generateInvoicePDF = (invoice: Invoice): void => {
     yPosition += 30;
   }
 
+  // Add public payment link for easy sharing
+  if ((invoice as any).public_token) {
+    doc.setTextColor(37, 99, 235);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Pay Online:', margin, yPosition);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+    const paymentUrl = `${window.location.origin}/invoice/${(invoice as any).public_token}`;
+    doc.textWithLink(paymentUrl, margin + 25, yPosition, { url: paymentUrl });
+    yPosition += 10;
+  }
+
   // Notes section (if applicable)
   if (invoice.notes) {
     doc.setTextColor(0, 0, 0);
