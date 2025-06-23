@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2, Save } from 'lucide-react';
+import { Plus, Trash2, Save, Calendar } from 'lucide-react';
 import { Client, Invoice, InvoiceItem } from '../types';
 import { loadClients, saveClients, loadInvoices, saveInvoices, generateInvoiceId, generateClientId } from '../utils/storage';
 
@@ -25,6 +25,12 @@ export const InvoiceForm: React.FC = () => {
   const [discountValue, setDiscountValue] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'paypal' | 'bank-transfer'>('stripe');
   const [notes, setNotes] = useState<string>('');
+  const [dueDate, setDueDate] = useState<string>(() => {
+    // Default to 30 days from now
+    const date = new Date();
+    date.setDate(date.getDate() + 30);
+    return date.toISOString().split('T')[0];
+  });
 
   useEffect(() => {
     const loadedClients = loadClients();
@@ -124,13 +130,13 @@ export const InvoiceForm: React.FC = () => {
       taxRate,
       discount,
       discountType,
-      discountValue, // Add this field
+      discountValue,
       total,
       status: 'unpaid',
       paymentMethod,
       notes: notes.trim() || undefined,
       createdAt: new Date(),
-      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+      dueDate: new Date(dueDate),
     };
 
     const existingInvoices = loadInvoices();
@@ -342,7 +348,7 @@ export const InvoiceForm: React.FC = () => {
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <h2 className="text-lg font-semibold text-slate-900 mb-4">Calculations</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 Tax Rate (%)
@@ -381,6 +387,19 @@ export const InvoiceForm: React.FC = () => {
                 value={discountValue}
                 onChange={(e) => setDiscountValue(parseFloat(e.target.value) || 0)}
                 className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-royal-500 focus:ring-royal-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                <Calendar className="inline h-4 w-4 mr-1" />
+                Due Date *
+              </label>
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-royal-500 focus:ring-royal-500"
+                required
               />
             </div>
           </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { CreditCard, Download, CheckCircle2, AlertCircle, X, Building2, MapPin, Mail, Phone, Clock } from 'lucide-react';
+import { CreditCard, Download, CheckCircle2, AlertCircle, X, Building2, MapPin, Mail, Phone, Clock, Calendar } from 'lucide-react';
 import { Invoice } from '../types';
 import { loadInvoices, saveInvoices } from '../utils/storage';
 import { PaymentModal } from './PaymentModal';
@@ -116,6 +116,15 @@ export const PublicInvoice: React.FC = () => {
     return new Date() > dueDate;
   };
 
+  const getDaysUntilDue = (dueDate?: Date) => {
+    if (!dueDate) return null;
+    const today = new Date();
+    const due = new Date(dueDate);
+    const diffTime = due.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
   if (!invoice) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -129,6 +138,8 @@ export const PublicInvoice: React.FC = () => {
       </div>
     );
   }
+
+  const daysUntilDue = getDaysUntilDue(invoice.dueDate);
 
   return (
     <div className="min-h-screen bg-slate-50 py-8">
@@ -262,13 +273,28 @@ export const PublicInvoice: React.FC = () => {
             )}
 
             {invoice.status === 'unpaid' && invoice.dueDate && isOverdue(invoice.dueDate) && (
+              <div className="mb-8 bg-red-50 border border-red-200 rounded-xl p-4">
+                <div className="flex items-center">
+                  <Clock className="h-6 w-6 text-red-600 mr-3" />
+                  <div>
+                    <h3 className="text-lg font-semibold text-red-800">Payment Overdue</h3>
+                    <p className="text-red-700">
+                      This invoice was due on {invoice.dueDate.toLocaleDateString()} ({Math.abs(daysUntilDue!)} days ago)
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {invoice.status === 'unpaid' && invoice.dueDate && !isOverdue(invoice.dueDate) && daysUntilDue !== null && daysUntilDue <= 7 && (
               <div className="mb-8 bg-amber-50 border border-amber-200 rounded-xl p-4">
                 <div className="flex items-center">
-                  <Clock className="h-6 w-6 text-amber-600 mr-3" />
+                  <Calendar className="h-6 w-6 text-amber-600 mr-3" />
                   <div>
-                    <h3 className="text-lg font-semibold text-amber-800">Payment Overdue</h3>
+                    <h3 className="text-lg font-semibold text-amber-800">Payment Due Soon</h3>
                     <p className="text-amber-700">
-                      This invoice was due on {invoice.dueDate.toLocaleDateString()}
+                      This invoice is due on {invoice.dueDate.toLocaleDateString()} 
+                      {daysUntilDue === 0 ? ' (today)' : ` (in ${daysUntilDue} day${daysUntilDue === 1 ? '' : 's'})`}
                     </p>
                   </div>
                 </div>
@@ -348,17 +374,38 @@ export const PublicInvoice: React.FC = () => {
                     : invoice.status === 'failed'
                     ? 'bg-red-100 text-red-800'
                     : isOverdue(invoice.dueDate)
+                    ? 'bg-red-100 text-red-800'
+                    : daysUntilDue !== null && daysUntilDue <= 7
                     ? 'bg-amber-100 text-amber-800'
                     : 'bg-blue-100 text-blue-800'
                 }`}>
                   {invoice.status === 'paid' ? 'PAID' : 
                    invoice.status === 'failed' ? 'PAYMENT FAILED' :
-                   isOverdue(invoice.dueDate) ? 'OVERDUE' : 'PENDING PAYMENT'}
+                   isOverdue(invoice.dueDate) ? 'OVERDUE' : 
+                   daysUntilDue !== null && daysUntilDue <= 7 ? 'DUE SOON' : 'PENDING PAYMENT'}
                 </div>
                 <div className="text-sm text-slate-600 space-y-1">
                   <p><span className="font-medium">Issued:</span> {invoice.createdAt.toLocaleDateString()}</p>
                   {invoice.dueDate && (
-                    <p><span className="font-medium">Due:</span> {invoice.dueDate.toLocaleDateString()}</p>
+                    <p>
+                      <span className="font-medium">Due:</span> {invoice.dueDate.toLocaleDateString()}
+                      {daysUntilDue !== null && invoice.status === 'unpaid' && (
+                        <span className={`ml-2 text-xs px-2 py-1 rounded-full ${
+                          isOverdue(invoice.dueDate) 
+                            ? 'bg-red-100 text-red-700' 
+                            : daysUntilDue <= 7 
+                            ? 'bg-amber-100 text-amber-700'
+                            : 'bg-blue-100 text-blue-700'
+                        }`}>
+                          {isOverdue(invoice.dueDate) 
+                            ? `${Math.abs(daysUntilDue)} days overdue`
+                            : daysUntilDue === 0 
+                            ? 'Due today'
+                            : `${daysUntilDue} days left`
+                          }
+                        </span>
+                      )}
+                    </p>
                   )}
                   {invoice.status === 'paid' && invoice.paidAt && (
                     <p><span className="font-medium">Paid:</span> {invoice.paidAt.toLocaleDateString()}</p>
@@ -428,10 +475,16 @@ export const PublicInvoice: React.FC = () => {
                     <button
                       onClick={handlePaymentClick}
                       disabled={isProcessing}
-                      className="inline-flex items-center justify-center px-8 py-4 border border-transparent text-lg font-semibold rounded-xl text-white bg-gradient-to-r from-royal-600 to-royal-700 hover:from-royal-700 hover:to-royal-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-royal-500 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                      className={`inline-flex items-center justify-center px-8 py-4 border border-transparent text-lg font-semibold rounded-xl text-white transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${
+                        isOverdue(invoice.dueDate)
+                          ? 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 focus:ring-red-500'
+                          : daysUntilDue !== null && daysUntilDue <= 7
+                          ? 'bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 focus:ring-amber-500'
+                          : 'bg-gradient-to-r from-royal-600 to-royal-700 hover:from-royal-700 hover:to-royal-800 focus:ring-royal-500'
+                      } focus:outline-none focus:ring-2 focus:ring-offset-2`}
                     >
                       <CreditCard className="mr-3 h-6 w-6" />
-                      Pay {formatCurrency(invoice.total)} via {getPaymentMethodLabel(invoice.paymentMethod)}
+                      {isOverdue(invoice.dueDate) ? 'Pay Overdue Amount' : 'Pay'} {formatCurrency(invoice.total)} via {getPaymentMethodLabel(invoice.paymentMethod)}
                     </button>
                     <p className="text-xs text-slate-500 text-center max-w-md">
                       ⚠️ This is a demo payment system for testing purposes only. No real charges will be made to your account.

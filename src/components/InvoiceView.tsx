@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, ExternalLink, CheckCircle, Building2, MapPin, Mail, Phone, Copy, Check } from 'lucide-react';
+import { ArrowLeft, ExternalLink, CheckCircle, Building2, MapPin, Mail, Phone, Copy, Check, Calendar, Clock } from 'lucide-react';
 import { Invoice } from '../types';
 import { loadInvoices, saveInvoices, getInvoicePaymentLink } from '../utils/storage';
 
@@ -65,19 +65,53 @@ export const InvoiceView: React.FC = () => {
     }).format(amount);
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      paid: { bg: 'bg-emerald-100', text: 'text-emerald-800', label: 'Paid' },
-      unpaid: { bg: 'bg-amber-100', text: 'text-amber-800', label: 'Unpaid' },
-      failed: { bg: 'bg-red-100', text: 'text-red-800', label: 'Failed' },
-    };
+  const getStatusBadge = (status: string, dueDate?: Date) => {
+    const isOverdue = dueDate && new Date() > dueDate;
     
-    const config = statusConfig[status as keyof typeof statusConfig];
+    if (status === 'paid') {
+      return (
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-emerald-100 text-emerald-800">
+          Paid
+        </span>
+      );
+    }
+    
+    if (status === 'failed') {
+      return (
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+          Payment Failed
+        </span>
+      );
+    }
+    
+    if (isOverdue) {
+      return (
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+          <Clock className="mr-1 h-3 w-3" />
+          Overdue
+        </span>
+      );
+    }
+    
     return (
-      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${config.bg} ${config.text}`}>
-        {config.label}
+      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800">
+        Unpaid
       </span>
     );
+  };
+
+  const isOverdue = (dueDate?: Date) => {
+    if (!dueDate) return false;
+    return new Date() > dueDate;
+  };
+
+  const getDaysUntilDue = (dueDate?: Date) => {
+    if (!dueDate) return null;
+    const today = new Date();
+    const due = new Date(dueDate);
+    const diffTime = due.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
   };
 
   if (!invoice) {
@@ -99,6 +133,7 @@ export const InvoiceView: React.FC = () => {
   }
 
   const paymentLink = getInvoicePaymentLink(invoice.id);
+  const daysUntilDue = getDaysUntilDue(invoice.dueDate);
 
   return (
     <div className="p-8 max-w-4xl mx-auto animate-fade-in">
@@ -114,10 +149,34 @@ export const InvoiceView: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">{invoice.id}</h1>
-            <p className="text-slate-600 mt-1">Created on {invoice.createdAt.toLocaleDateString()}</p>
+            <div className="flex items-center space-x-4 mt-2">
+              <p className="text-slate-600">Created on {invoice.createdAt.toLocaleDateString()}</p>
+              {invoice.dueDate && (
+                <div className="flex items-center text-slate-600">
+                  <Calendar className="mr-1 h-4 w-4" />
+                  <span>Due {invoice.dueDate.toLocaleDateString()}</span>
+                  {daysUntilDue !== null && invoice.status === 'unpaid' && (
+                    <span className={`ml-2 text-xs px-2 py-1 rounded-full ${
+                      isOverdue(invoice.dueDate) 
+                        ? 'bg-red-100 text-red-700' 
+                        : daysUntilDue <= 7 
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {isOverdue(invoice.dueDate) 
+                        ? `${Math.abs(daysUntilDue)} days overdue`
+                        : daysUntilDue === 0 
+                        ? 'Due today'
+                        : `${daysUntilDue} days left`
+                      }
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
           <div className="flex items-center space-x-4">
-            {getStatusBadge(invoice.status)}
+            {getStatusBadge(invoice.status, invoice.dueDate)}
             <a
               href={paymentLink}
               target="_blank"
@@ -139,6 +198,36 @@ export const InvoiceView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Due Date Alert */}
+      {invoice.status === 'unpaid' && invoice.dueDate && isOverdue(invoice.dueDate) && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+          <div className="flex items-center">
+            <Clock className="h-5 w-5 text-red-600 mr-3" />
+            <div>
+              <h3 className="text-sm font-semibold text-red-800">Payment Overdue</h3>
+              <p className="text-red-700 text-sm">
+                This invoice was due on {invoice.dueDate.toLocaleDateString()} ({Math.abs(daysUntilDue!)} days ago)
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {invoice.status === 'unpaid' && invoice.dueDate && !isOverdue(invoice.dueDate) && daysUntilDue !== null && daysUntilDue <= 7 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+          <div className="flex items-center">
+            <Calendar className="h-5 w-5 text-amber-600 mr-3" />
+            <div>
+              <h3 className="text-sm font-semibold text-amber-800">Payment Due Soon</h3>
+              <p className="text-amber-700 text-sm">
+                This invoice is due on {invoice.dueDate.toLocaleDateString()} 
+                {daysUntilDue === 0 ? ' (today)' : ` (in ${daysUntilDue} day${daysUntilDue === 1 ? '' : 's'})`}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Payment Link Section */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
