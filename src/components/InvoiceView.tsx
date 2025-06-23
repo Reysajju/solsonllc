@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, ExternalLink, CheckCircle, Building2, MapPin, Mail, Phone, Copy, Check, Calendar, Clock } from 'lucide-react';
+import { ArrowLeft, ExternalLink, CheckCircle, Building2, MapPin, Mail, Phone, Copy, Check, Calendar, Clock, Download } from 'lucide-react';
 import { Invoice } from '../types';
 import { loadInvoices, saveInvoices, getInvoicePaymentLink } from '../utils/storage';
+import { generateInvoicePDF } from '../utils/pdfGenerator';
 
 export const InvoiceView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -55,6 +56,12 @@ export const InvoiceView: React.FC = () => {
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       }
+    }
+  };
+
+  const downloadPDF = () => {
+    if (invoice) {
+      generateInvoicePDF(invoice);
     }
   };
 
@@ -177,6 +184,13 @@ export const InvoiceView: React.FC = () => {
           </div>
           <div className="flex items-center space-x-4">
             {getStatusBadge(invoice.status, invoice.dueDate)}
+            <button
+              onClick={downloadPDF}
+              className="inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 transition-colors"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Download PDF
+            </button>
             <a
               href={paymentLink}
               target="_blank"

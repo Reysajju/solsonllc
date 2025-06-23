@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { CreditCard, Download, CheckCircle2, AlertCircle, X, Building2, MapPin, Mail, Phone, Clock, Calendar } from 'lucide-react';
 import { Invoice } from '../types';
 import { loadInvoices, saveInvoices } from '../utils/storage';
+import { generateInvoicePDF } from '../utils/pdfGenerator';
 import { PaymentModal } from './PaymentModal';
 
 export const PublicInvoice: React.FC = () => {
@@ -101,14 +102,9 @@ export const PublicInvoice: React.FC = () => {
   };
 
   const downloadPDF = () => {
-    // Simulate PDF download
-    const element = document.createElement('a');
-    const file = new Blob(['Invoice PDF content would be here'], { type: 'application/pdf' });
-    element.href = URL.createObjectURL(file);
-    element.download = `invoice-${invoice?.id}.pdf`;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
+    if (invoice) {
+      generateInvoicePDF(invoice);
+    }
   };
 
   const isOverdue = (dueDate?: Date) => {
