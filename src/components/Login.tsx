@@ -32,23 +32,11 @@ export const Login: React.FC = () => {
     }
   };
 
-  const handleDemoLogin = () => {
-    setEmail('sajjadr742@gmail.com');
-    setPassword('sAjjjAd12#$%');
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-royal-900 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background decorative elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gold-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-primary-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gold-400 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-bounce-gentle"></div>
-      </div>
-
-      <div className="max-w-md w-full relative z-10">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-900 to-primary-800">
+      <div className="w-full max-w-md p-8 bg-white bg-opacity-5 rounded-2xl shadow-xl border border-white border-opacity-10 animate-fade-in">
         {/* Logo and Header */}
-        <div className="text-center mb-8 animate-fade-in">
+        <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-gold-400 to-gold-600 rounded-3xl shadow-premium mb-6 relative">
             <Crown className="h-10 w-10 text-white" />
             <div className="absolute -top-2 -right-2 h-6 w-6 bg-emerald-400 rounded-full flex items-center justify-center animate-pulse">
@@ -173,28 +161,6 @@ export const Login: React.FC = () => {
               )}
             </button>
           </form>
-
-          {/* Admin Credentials */}
-          {!isSignUp && (
-            <div className="mt-8 p-4 bg-white bg-opacity-5 rounded-xl border border-white border-opacity-10">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center">
-                  <div className="h-2 w-2 bg-emerald-400 rounded-full mr-2 animate-pulse"></div>
-                  <p className="text-xs text-primary-200 font-semibold uppercase tracking-wider">Admin Access</p>
-                </div>
-                <button
-                  onClick={handleDemoLogin}
-                  className="text-xs text-gold-400 hover:text-gold-300 font-medium transition-colors"
-                >
-                  Use Admin Login
-                </button>
-              </div>
-              <div className="space-y-1 text-xs text-primary-300">
-                <p>Email: sajjadr742@gmail.com</p>
-                <p>Password: sAjjjAd12#$%</p>
-              </div>
-            </div>
-          )}
 
           {/* Security Features */}
           <div className="mt-6 flex items-center justify-center space-x-6 text-xs text-primary-300">
