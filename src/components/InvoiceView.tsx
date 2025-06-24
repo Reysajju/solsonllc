@@ -161,7 +161,7 @@ export const InvoiceView: React.FC = () => {
   // Always use public_token for public invoice link
   const paymentLink = invoice.public_token
     ? `${window.location.origin}/invoice/${invoice.public_token}`
-    : '';
+    : null;
   const daysUntilDue = getDaysUntilDue(invoice.dueDate);
 
   return (
@@ -213,18 +213,17 @@ export const InvoiceView: React.FC = () => {
               <Download className="mr-2 h-4 w-4" />
               Download PDF
             </button>
-            <a
-              href={paymentLink || undefined}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 transition-colors"
-              disabled={!paymentLink}
-              style={!paymentLink ? { pointerEvents: 'none', opacity: 0.5 } : {}}
-            >
-              <ExternalLink className="mr-2 h-4 w-4" />
-              View Public Invoice
-            </a>
-            {!paymentLink && (
+            {paymentLink ? (
+              <a
+                href={paymentLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 transition-colors"
+              >
+                <ExternalLink className="mr-2 h-4 w-4" />
+                View Public Invoice
+              </a>
+            ) : (
               <span className="text-xs text-red-500 ml-2">No public link available</span>
             )}
             {invoice.status === 'unpaid' && (
@@ -276,7 +275,7 @@ export const InvoiceView: React.FC = () => {
         <p className="text-slate-600 mb-4">Share this link with your client to allow them to pay the invoice online from anywhere in the world:</p>
         <div className="flex items-center space-x-3">
           <div className="flex-1 bg-slate-50 rounded-lg p-3 border">
-            <code className="text-sm text-slate-700 break-all">{paymentLink}</code>
+            <code className="text-sm text-slate-700 break-all">{paymentLink || 'No public link available'}</code>
           </div>
           <button
             onClick={copyPaymentLink}
@@ -285,6 +284,8 @@ export const InvoiceView: React.FC = () => {
                 ? 'text-emerald-700 bg-emerald-100 border-emerald-300' 
                 : 'text-royal-700 bg-royal-100 hover:bg-royal-200 border-royal-300'
             }`}
+            disabled={!paymentLink}
+            style={!paymentLink ? { pointerEvents: 'none', opacity: 0.5 } : {}}
           >
             {copied ? (
               <>
