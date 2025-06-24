@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useAuthContext } from './AuthProvider';
 import { supabase } from '../lib/supabase';
+import { SettingsPanel } from './SettingsPanel';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -310,7 +311,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           </header>
 
           <main className="flex-1 overflow-y-auto">
-            {children}
+            {/* Render settings panel if on /settings */}
+            {location.pathname === '/settings' ? <SettingsPanel /> : children}
           </main>
         </div>
       </div>

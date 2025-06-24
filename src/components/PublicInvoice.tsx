@@ -129,6 +129,14 @@ export const PublicInvoice: React.FC = () => {
     return diffDays;
   };
 
+  // Always use the public_token for the invoice URL if available
+  const getInvoiceUrl = () => {
+    if (invoice && invoice.public_token) {
+      return `${window.location.origin}/invoice/${invoice.public_token}`;
+    }
+    return window.location.href;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -244,7 +252,7 @@ export const PublicInvoice: React.FC = () => {
         )}
 
         {/* Payment Modal */}
-        {showPaymentModal && (
+        {showPaymentModal && invoice && (
           <PaymentModal
             invoice={invoice}
             onClose={() => setShowPaymentModal(false)}

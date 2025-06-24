@@ -309,72 +309,21 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ invoice, onClose, on
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="text-center mb-6">
         <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-100 rounded-full mb-4">
-          <span className="text-2xl font-bold text-emerald-600">B</span>
+          <Shield className="h-8 w-8 text-emerald-600" />
         </div>
-        <h3 className="text-lg font-medium text-slate-900">Bank Transfer</h3>
-        <p className="text-sm text-slate-600">Secure bank-to-bank transfer</p>
+        <h3 className="text-lg font-medium text-slate-900">Bank Transfer Payment</h3>
+        <p className="text-sm text-slate-600">Please use the following bank details to complete your payment. After transferring, click 'Mark as Paid'.</p>
       </div>
-      
+      <div className="bg-slate-50 rounded-lg p-4 mb-4">
+        <div className="mb-2"><span className="font-semibold">Bank Name:</span> Your Business Bank</div>
+        <div className="mb-2"><span className="font-semibold">Account Number:</span> 1234567890</div>
+        <div className="mb-2"><span className="font-semibold">Routing Number:</span> 123456789</div>
+        <div className="mb-2"><span className="font-semibold">Account Holder:</span> Solson LLC</div>
+        <div className="mb-2"><span className="font-semibold">Reference:</span> Invoice #{invoice.id}</div>
+      </div>
       <div>
         <label className="block text-sm font-medium text-slate-700 mb-2">
-          Account Holder Name *
-        </label>
-        <input
-          type="text"
-          value={paymentData.cardholderName}
-          onChange={(e) => handleInputChange('cardholderName', e.target.value)}
-          className={`block w-full rounded-lg border-slate-300 shadow-sm focus:border-royal-500 focus:ring-royal-500 ${
-            errors.cardholderName ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''
-          }`}
-          placeholder="John Doe"
-        />
-        {errors.cardholderName && (
-          <p className="mt-1 text-sm text-red-600">{errors.cardholderName}</p>
-        )}
-      </div>
-      
-      <div>
-        <label className="block text-sm font-medium text-slate-700 mb-2">
-          Bank Account Number *
-        </label>
-        <input
-          type="text"
-          value={paymentData.bankAccount}
-          onChange={(e) => handleInputChange('bankAccount', e.target.value)}
-          className={`block w-full rounded-lg border-slate-300 shadow-sm focus:border-royal-500 focus:ring-royal-500 ${
-            errors.bankAccount ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''
-          }`}
-          placeholder="1234567890"
-        />
-        {errors.bankAccount && (
-          <p className="mt-1 text-sm text-red-600">{errors.bankAccount}</p>
-        )}
-        <p className="mt-1 text-xs text-slate-500">Enter your actual bank account number</p>
-      </div>
-      
-      <div>
-        <label className="block text-sm font-medium text-slate-700 mb-2">
-          Routing Number *
-        </label>
-        <input
-          type="text"
-          value={paymentData.routingNumber}
-          onChange={(e) => handleInputChange('routingNumber', e.target.value)}
-          className={`block w-full rounded-lg border-slate-300 shadow-sm focus:border-royal-500 focus:ring-royal-500 ${
-            errors.routingNumber ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''
-          }`}
-          placeholder="123456789"
-          maxLength={9}
-        />
-        {errors.routingNumber && (
-          <p className="mt-1 text-sm text-red-600">{errors.routingNumber}</p>
-        )}
-        <p className="mt-1 text-xs text-slate-500">Enter your bank's routing number</p>
-      </div>
-      
-      <div>
-        <label className="block text-sm font-medium text-slate-700 mb-2">
-          Email Address *
+          Your Email Address *
         </label>
         <input
           type="email"
@@ -389,14 +338,13 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ invoice, onClose, on
           <p className="mt-1 text-sm text-red-600">{errors.email}</p>
         )}
       </div>
-      
       <div className="flex items-center justify-center pt-4">
         <button
           type="submit"
-          className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all shadow-lg hover:shadow-xl"
+          className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all shadow-lg hover:shadow-xl"
         >
           <Lock className="mr-2 h-5 w-5" />
-          Authorize Transfer - {formatCurrency(invoice.total)}
+          Mark as Paid
         </button>
       </div>
     </form>
@@ -412,13 +360,15 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ invoice, onClose, on
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 animate-fade-in">
       <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto animate-fade-in shadow-2xl">
         <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 rounded-t-xl">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-semibold text-slate-900">
-                {getPaymentMethodLabel(invoice.paymentMethod)} Payment
+                {invoice.paymentMethod === 'stripe' && 'Credit/Debit Card Payment'}
+                {invoice.paymentMethod === 'paypal' && 'PayPal Payment'}
+                {invoice.paymentMethod === 'bank-transfer' && 'Bank Transfer Payment'}
               </h2>
               <p className="text-sm text-slate-600">Invoice #{invoice.id}</p>
             </div>
@@ -430,39 +380,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ invoice, onClose, on
             </button>
           </div>
         </div>
-        
         <div className="p-6">
-          {/* Production Notice */}
-          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-6">
-            <div className="flex items-start">
-              <Shield className="h-5 w-5 text-emerald-600 mr-3 mt-0.5 flex-shrink-0" />
-              <div>
-                <h3 className="text-sm font-semibold text-emerald-800">Secure Payment Processing</h3>
-                <p className="text-xs text-emerald-700 mt-1">
-                  This is a live payment system. Real charges will be processed. Your payment information is encrypted and secure.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Payment Amount Summary */}
-          <div className="bg-slate-50 rounded-lg p-4 mb-6">
-            <div className="flex justify-between items-center">
-              <span className="text-slate-600">Amount Due:</span>
-              <span className="text-2xl font-bold text-slate-900">{formatCurrency(invoice.total)}</span>
-            </div>
-            <div className="flex justify-between items-center mt-2 text-sm">
-              <span className="text-slate-500">Payment Method:</span>
-              <span className="text-slate-700 font-medium">{getPaymentMethodLabel(invoice.paymentMethod)}</span>
-            </div>
-          </div>
-
-          {/* Security Badge */}
-          <div className="flex items-center justify-center mb-6 text-sm text-slate-600">
-            <Shield className="h-4 w-4 mr-2 text-emerald-600" />
-            <span>Secured with 256-bit SSL encryption</span>
-          </div>
-
           {/* Payment Form */}
           {invoice.paymentMethod === 'stripe' && renderStripeForm()}
           {invoice.paymentMethod === 'paypal' && renderPayPalForm()}
