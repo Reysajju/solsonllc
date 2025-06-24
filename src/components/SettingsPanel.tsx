@@ -8,6 +8,16 @@ const TABS = [
   { key: 'api', label: 'API Keys' },
 ];
 
+const PAYMENT_METHOD_OPTIONS = [
+  { key: 'paypal', label: 'PayPal', type: 'email', placeholder: 'PayPal Email' },
+  { key: 'stripe', label: 'Stripe', type: 'text', placeholder: 'Stripe Account ID' },
+  { key: 'zelle', label: 'Zelle', type: 'text', placeholder: 'Zelle Details' },
+  { key: 'wise', label: 'Wise', type: 'text', placeholder: 'Wise Details' },
+  { key: 'wire', label: 'Wire', type: 'text', placeholder: 'Wire Details' },
+  { key: 'bank', label: 'Bank Transfer', type: 'text', placeholder: 'Bank name, IBAN, SWIFT, etc' },
+  { key: 'googlepay', label: 'Google Pay', type: 'text', placeholder: 'Google Pay Details' },
+];
+
 // Hook to fetch current user's settings for use in other components
 export function useUserSettings() {
   const [settings, setSettings] = useState(null);
@@ -35,6 +45,10 @@ export const SettingsPanel: React.FC<{ onSettingsChange?: (settings: any) => voi
   const [profile, setProfile] = useState({ full_name: '', email: '' });
   const [company, setCompany] = useState({ company_name: '', address: '' });
   const [payments, setPayments] = useState({ stripe: '', paypal: '', bank: '' });
+  const [paymentMethods, setPaymentMethods] = useState([
+    // Default to one PayPal method for new users
+    { type: 'paypal', value: '' },
+  ]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -53,11 +67,12 @@ export const SettingsPanel: React.FC<{ onSettingsChange?: (settings: any) => voi
       if (profileData) {
         setProfile({ full_name: profileData.full_name || '', email: profileData.email });
         setCompany({ company_name: profileData.company_name || '', address: profileData.address || '' });
-        setPayments({
-          stripe: profileData.stripe_account || '',
-          paypal: profileData.paypal_email || '',
-          bank: profileData.bank_details || '',
-        });
+        // Load payment methods from profileData if present, else fallback
+        if (profileData.payment_methods) {
+          setPaymentMethods(profileData.payment_methods);
+        } else {
+          setPaymentMethods([{ type: 'paypal', value: '' }]);
+        }
         if (onSettingsChange) onSettingsChange(profileData);
       }
       setLoading(false);
@@ -92,15 +107,39 @@ export const SettingsPanel: React.FC<{ onSettingsChange?: (settings: any) => voi
     setMessage(error ? error.message : 'Company info updated!');
     setLoading(false);
   };
+  const addPaymentMethod = () => {
+    if (paymentMethods.length < 7) {
+      // Add the first unused payment type
+      const usedTypes = paymentMethods.map(pm => pm.type);
+      const nextType = PAYMENT_METHOD_OPTIONS.find(opt => !usedTypes.includes(opt.key));
+      if (nextType) {
+        setPaymentMethods([...paymentMethods, { type: nextType.key, value: '' }]);
+      }
+    }
+  };
+
+  const updatePaymentMethod = (idx: number, value: string) => {
+    setPaymentMethods(paymentMethods.map((pm, i) => i === idx ? { ...pm, value } : pm));
+  };
+
+  const changePaymentType = (idx: number, type: string) => {
+    setPaymentMethods(paymentMethods.map((pm, i) => i === idx ? { type, value: '' } : pm));
+  };
+
+  const removePaymentMethod = (idx: number) => {
+    setPaymentMethods(paymentMethods.filter((_, i) => i !== idx));
+  };
+
   const savePayments = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage('');
     const user = supabase.auth.getUser ? (await supabase.auth.getUser()).data.user : null;
     if (!user) return;
-    const { error } = await supabase.from('profiles').update({ stripe_account: payments.stripe, paypal_email: payments.paypal, bank_details: payments.bank }).eq('id', user.id);
+    // Save as a JSON array in payment_methods column
+    const { error } = await supabase.from('profiles').update({ payment_methods: paymentMethods }).eq('id', user.id);
     if (!error) {
-      if (onSettingsChange) onSettingsChange({ ...profile, ...company, ...payments });
+      if (onSettingsChange) onSettingsChange({ ...profile, ...company, paymentMethods });
     }
     setMessage(error ? error.message : 'Payment methods updated!');
     setLoading(false);
@@ -150,18 +189,52 @@ export const SettingsPanel: React.FC<{ onSettingsChange?: (settings: any) => voi
         )}
         {activeTab === 'payments' && (
           <form onSubmit={savePayments} className="space-y-4">
-            <div>
-              <label className="block font-medium mb-1">Stripe Account ID</label>
-              <input type="text" className="input" value={payments.stripe} onChange={e => setPayments({ ...payments, stripe: e.target.value })} placeholder="e.g. acct_123..." />
-            </div>
-            <div>
-              <label className="block font-medium mb-1">PayPal Email</label>
-              <input type="email" className="input" value={payments.paypal} onChange={e => setPayments({ ...payments, paypal: e.target.value })} placeholder="your@email.com" />
-            </div>
-            <div>
-              <label className="block font-medium mb-1">Bank Details</label>
-              <textarea className="input" value={payments.bank} onChange={e => setPayments({ ...payments, bank: e.target.value })} placeholder="Bank name, IBAN, SWIFT, etc" />
-            </div>
+            {paymentMethods.map((pm, idx) => {
+              const option = PAYMENT_METHOD_OPTIONS.find(opt => opt.key === pm.type);
+              return (
+                <div key={idx} className="flex items-center space-x-2">
+                  <select
+                    className="input w-40"
+                    value={pm.type}
+                    onChange={e => changePaymentType(idx, e.target.value)}
+                    disabled={paymentMethods.length > 1 && PAYMENT_METHOD_OPTIONS.filter(opt => !paymentMethods.some(m => m.type === opt.key)).length === 0}
+                  >
+                    {PAYMENT_METHOD_OPTIONS.map(opt => (
+                      <option key={opt.key} value={opt.key} disabled={paymentMethods.some((m, i) => m.type === opt.key && i !== idx)}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                  {option?.type === 'email' ? (
+                    <input
+                      type="email"
+                      className="input flex-1"
+                      placeholder={option.placeholder}
+                      value={pm.value}
+                      onChange={e => updatePaymentMethod(idx, e.target.value)}
+                      required
+                    />
+                  ) : (
+                    <input
+                      type="text"
+                      className="input flex-1"
+                      placeholder={option?.placeholder}
+                      value={pm.value}
+                      onChange={e => updatePaymentMethod(idx, e.target.value)}
+                      required
+                    />
+                  )}
+                  {paymentMethods.length > 1 && (
+                    <button type="button" className="text-red-500 ml-2" onClick={() => removePaymentMethod(idx)} title="Remove">
+                      &times;
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+            {paymentMethods.length < 7 && (
+              <button type="button" className="btn-secondary" onClick={addPaymentMethod}>+ Add Payment Method</button>
+            )}
             <button type="submit" className="btn-primary" disabled={loading}>Save Payment Methods</button>
           </form>
         )}

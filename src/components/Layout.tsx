@@ -229,9 +229,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   className="p-2 rounded-xl text-royal-600 hover:bg-royal-50 transition-colors relative"
                 >
                   <Bell className="h-6 w-6" />
-                  <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                    3
-                  </span>
+                  {notifications.length > 0 && (
+                    <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                      {notifications.length}
+                    </span>
+                  )}
                 </button>
                 
                 {showNotifications && (
@@ -242,21 +244,23 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                     <div className="max-h-80 overflow-y-auto">
                       {notifications.length === 0 ? (
                         <div className="p-4 text-slate-500 text-center">No notifications yet.</div>
-                      ) : notifications.map((notification) => (
-                        <div key={notification.id} className="p-4 border-b border-royal-100 hover:bg-royal-50 transition-colors">
-                          <div className="flex items-start space-x-3">
-                            <div className={`w-2 h-2 rounded-full mt-2 ${
-                              notification.type === 'success' ? 'bg-emerald-500' :
-                              notification.type === 'warning' ? 'bg-amber-500' : 'bg-primary-500'
-                            }`}></div>
-                            <div className="flex-1">
-                              <h4 className="font-medium text-royal-900 text-sm">{notification.title}</h4>
-                              <p className="text-royal-600 text-sm mt-1">{notification.message}</p>
-                              <p className="text-royal-500 text-xs mt-2">{new Date(notification.created_at).toLocaleString()}</p>
+                      ) : (
+                        notifications.map((notification) => (
+                          <div key={notification.id} className="p-4 border-b border-royal-100 hover:bg-royal-50 transition-colors">
+                            <div className="flex items-start space-x-3">
+                              <div className={`w-2 h-2 rounded-full mt-2 ${
+                                notification.type === 'success' ? 'bg-emerald-500' :
+                                notification.type === 'warning' ? 'bg-amber-500' : 'bg-primary-500'
+                              }`}></div>
+                              <div className="flex-1">
+                                <h4 className="font-medium text-royal-900 text-sm">{notification.title}</h4>
+                                <p className="text-royal-600 text-sm mt-1">{notification.message}</p>
+                                <p className="text-royal-500 text-xs mt-2">{new Date(notification.created_at).toLocaleString()}</p>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        ))
+                      )}
                     </div>
                     <div className="p-4 text-center">
                       <button className="text-primary-600 hover:text-primary-700 text-sm font-medium">

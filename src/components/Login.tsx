@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
-import { Crown, Mail, Lock, ArrowRight, Sparkles, Shield, Eye, EyeOff, UserPlus } from 'lucide-react';
+import { Crown, Mail, Lock, ArrowRight, Sparkles, Shield, Eye, EyeOff } from 'lucide-react';
 import { useAuthContext } from './AuthProvider';
 
 export const Login: React.FC = () => {
-  const { signIn, signUp } = useAuthContext();
-  const [isSignUp, setIsSignUp] = useState(false);
+  const { signIn } = useAuthContext();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -16,15 +14,9 @@ export const Login: React.FC = () => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-
     try {
-      if (isSignUp) {
-        const { error } = await signUp(email, password, fullName);
-        if (error) throw error;
-      } else {
-        const { error } = await signIn(email, password);
-        if (error) throw error;
-      }
+      const { error } = await signIn(email, password);
+      if (error) throw error;
     } catch (error: any) {
       setError(error.message || 'An error occurred during authentication');
     } finally {
@@ -51,57 +43,14 @@ export const Login: React.FC = () => {
           </div>
         </div>
 
-        {/* Login/Signup Form */}
+        {/* Login Form Only */}
         <div className="glass-effect rounded-3xl shadow-premium border border-white border-opacity-20 p-8 animate-slide-up backdrop-blur-xl">
-          <div className="flex items-center justify-center mb-6">
-            <button
-              onClick={() => setIsSignUp(false)}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                !isSignUp 
-                  ? 'bg-white bg-opacity-20 text-white' 
-                  : 'text-primary-300 hover:text-white'
-              }`}
-            >
-              Sign In
-            </button>
-            <button
-              onClick={() => setIsSignUp(true)}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ml-2 ${
-                isSignUp 
-                  ? 'bg-white bg-opacity-20 text-white' 
-                  : 'text-primary-300 hover:text-white'
-              }`}
-            >
-              Sign Up
-            </button>
-          </div>
-
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className="bg-red-500 bg-opacity-10 border border-red-400 text-red-300 px-4 py-3 rounded-xl text-sm">
                 {error}
               </div>
             )}
-
-            {isSignUp && (
-              <div>
-                <label className="block text-sm font-semibold text-white mb-3">
-                  Full Name
-                </label>
-                <div className="relative">
-                  <UserPlus className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-primary-300" />
-                  <input
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="pl-12 block w-full rounded-xl border-0 bg-white bg-opacity-10 backdrop-blur-sm text-white placeholder-primary-300 shadow-sm focus:bg-opacity-20 focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 transition-all duration-200 py-4"
-                    placeholder="Enter your full name"
-                    required={isSignUp}
-                  />
-                </div>
-              </div>
-            )}
-
             <div>
               <label className="block text-sm font-semibold text-white mb-3">
                 Email Address
@@ -118,7 +67,6 @@ export const Login: React.FC = () => {
                 />
               </div>
             </div>
-
             <div>
               <label className="block text-sm font-semibold text-white mb-3">
                 Password
@@ -142,7 +90,6 @@ export const Login: React.FC = () => {
                 </button>
               </div>
             </div>
-
             <button
               type="submit"
               disabled={isLoading}
@@ -151,17 +98,16 @@ export const Login: React.FC = () => {
               {isLoading ? (
                 <>
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-900 mr-3"></div>
-                  {isSignUp ? 'Creating Account...' : 'Signing In...'}
+                  Signing In...
                 </>
               ) : (
                 <>
-                  {isSignUp ? 'Create Account' : 'Sign In to Portal'}
+                  Sign In to Portal
                   <ArrowRight className="ml-3 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </>
               )}
             </button>
           </form>
-
           {/* Security Features */}
           <div className="mt-6 flex items-center justify-center space-x-6 text-xs text-primary-300">
             <div className="flex items-center">
@@ -178,7 +124,6 @@ export const Login: React.FC = () => {
             </div>
           </div>
         </div>
-
         {/* Footer */}
         <div className="text-center mt-8 animate-fade-in">
           <p className="text-sm text-primary-300">
