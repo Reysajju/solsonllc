@@ -47,11 +47,8 @@ export const InvoiceView: React.FC = () => {
   };
 
   const copyPaymentLink = async () => {
-    if (invoice) {
-      // Use public_token if available
-      const paymentLink = invoice.public_token
-        ? `${window.location.origin}/invoice/${invoice.public_token}`
-        : `${window.location.origin}/invoice/${invoice.id}`;
+    if (invoice && invoice.public_token) {
+      const paymentLink = `${window.location.origin}/invoice/${invoice.public_token}`;
       try {
         await navigator.clipboard.writeText(paymentLink);
         setCopied(true);
@@ -158,8 +155,7 @@ export const InvoiceView: React.FC = () => {
     );
   }
 
-  // Always use public_token for public invoice link
-  const paymentLink = invoice.public_token
+  const paymentLink = invoice.public_token 
     ? `${window.location.origin}/invoice/${invoice.public_token}`
     : null;
   const daysUntilDue = getDaysUntilDue(invoice.dueDate);
@@ -213,7 +209,7 @@ export const InvoiceView: React.FC = () => {
               <Download className="mr-2 h-4 w-4" />
               Download PDF
             </button>
-            {paymentLink ? (
+            {paymentLink && (
               <a
                 href={paymentLink}
                 target="_blank"
@@ -223,8 +219,6 @@ export const InvoiceView: React.FC = () => {
                 <ExternalLink className="mr-2 h-4 w-4" />
                 View Public Invoice
               </a>
-            ) : (
-              <span className="text-xs text-red-500 ml-2">No public link available</span>
             )}
             {invoice.status === 'unpaid' && (
               <button
@@ -271,35 +265,65 @@ export const InvoiceView: React.FC = () => {
 
       {/* Payment Link Section */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-        <h3 className="text-lg font-semibold text-slate-900 mb-4">Shareable Payment Link</h3>
-        <p className="text-slate-600 mb-4">Share this link with your client to allow them to pay the invoice online from anywhere in the world:</p>
-        <div className="flex items-center space-x-3">
-          <div className="flex-1 bg-slate-50 rounded-lg p-3 border">
-            <code className="text-sm text-slate-700 break-all">{paymentLink || 'No public link available'}</code>
+        <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center">
+          <ExternalLink className="mr-2 h-5 w-5 text-primary-600" />
+          Global Payment Link
+        </h3>
+        <p className="text-slate-600 mb-4">
+          Share this secure link with your client to allow them to pay the invoice online from anywhere in the world. 
+          The link includes secure card payment processing and works on all devices.
+        </p>
+        {paymentLink ? (
+          <div className="flex items-center space-x-3">
+            <div className="flex-1 bg-gradient-to-r from-primary-50 to-primary-100 rounded-lg p-4 border border-primary-200">
+              <div className="flex items-center space-x-2 mb-2">
+                <div className="h-2 w-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                <span className="text-xs font-medium text-primary-700 uppercase tracking-wide">Live Payment Link</span>
+              </div>
+              <code className="text-sm text-primary-800 break-all font-mono">{paymentLink}</code>
+            </div>
+            <button
+              onClick={copyPaymentLink}
+              className={`inline-flex items-center px-4 py-3 border border-transparent text-sm font-medium rounded-lg transition-all duration-200 ${
+                copied 
+                  ? 'text-emerald-700 bg-emerald-100 border-emerald-300 shadow-sm' 
+                  : 'text-white bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
+              }`}
+            >
+              {copied ? (
+                <>
+                  <Check className="mr-2 h-4 w-4" />
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copy Link
+                </>
+              )}
+            </button>
           </div>
-          <button
-            onClick={copyPaymentLink}
-            className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md transition-colors ${
-              copied 
-                ? 'text-emerald-700 bg-emerald-100 border-emerald-300' 
-                : 'text-royal-700 bg-royal-100 hover:bg-royal-200 border-royal-300'
-            }`}
-            disabled={!paymentLink}
-            style={!paymentLink ? { pointerEvents: 'none', opacity: 0.5 } : {}}
-          >
-            {copied ? (
-              <>
-                <Check className="mr-2 h-4 w-4" />
-                Copied!
-              </>
-            ) : (
-              <>
-                <Copy className="mr-2 h-4 w-4" />
-                Copy Link
-              </>
-            )}
-          </button>
-        </div>
+        ) : (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center">
+              <div className="h-2 w-2 bg-red-500 rounded-full mr-2"></div>
+              <span className="text-red-800 font-medium">No public link available - Please contact support</span>
+            </div>
+          </div>
+        )}
+        
+        {paymentLink && (
+          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h4 className="font-medium text-blue-900 mb-2">✨ Payment Features:</h4>
+            <ul className="text-sm text-blue-800 space-y-1">
+              <li>• Secure credit/debit card processing</li>
+              <li>• Works worldwide on any device</li>
+              <li>• Real-time payment notifications</li>
+              <li>• Automatic receipt generation</li>
+              <li>• Mobile-optimized payment flow</li>
+            </ul>
+          </div>
+        )}
       </div>
 
       {/* Invoice Details */}

@@ -123,6 +123,7 @@ export const invoiceService = {
       createdAt: new Date(invoice.created_at),
       dueDate: invoice.due_date ? new Date(invoice.due_date) : undefined,
       paidAt: invoice.paid_at ? new Date(invoice.paid_at) : undefined,
+      public_token: invoice.public_token, // Make sure this is included
     };
   },
 
@@ -171,6 +172,7 @@ export const invoiceService = {
       createdAt: new Date(invoice.created_at),
       dueDate: invoice.due_date ? new Date(invoice.due_date) : undefined,
       paidAt: invoice.paid_at ? new Date(invoice.paid_at) : undefined,
+      public_token: invoice.public_token, // Make sure this is included
     };
   },
 
@@ -222,6 +224,7 @@ export const invoiceService = {
       createdAt: new Date(invoice.created_at),
       dueDate: invoice.due_date ? new Date(invoice.due_date) : undefined,
       paidAt: invoice.paid_at ? new Date(invoice.paid_at) : undefined,
+      public_token: invoice.public_token, // Make sure this is included
     }));
   },
 
@@ -245,8 +248,8 @@ export const invoiceService = {
   },
 
   // Get public payment link
-  getPaymentLink(invoiceId: string, publicToken: string): string {
-    const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+  getPaymentLink(publicToken: string): string {
+    const baseUrl = window.location.origin;
     return `${baseUrl}/invoice/${publicToken}`;
   },
 };

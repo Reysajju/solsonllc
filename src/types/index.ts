@@ -33,7 +33,7 @@ export interface Invoice {
   createdAt: Date;
   dueDate?: Date;
   paidAt?: Date;
-  public_token?: string;
+  public_token: string; // Make this required, not optional
 }
 
 export interface DashboardStats {

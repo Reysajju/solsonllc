@@ -30,6 +30,7 @@ export const loadInvoices = (): Invoice[] => {
       createdAt: new Date(invoice.createdAt),
       dueDate: invoice.dueDate ? new Date(invoice.dueDate) : undefined,
       paidAt: invoice.paidAt ? new Date(invoice.paidAt) : undefined,
+      public_token: invoice.public_token || invoice.id, // Fallback for legacy data
     }));
   }
   return [];
@@ -46,6 +47,6 @@ export const generateClientId = (): string => {
   return `CLIENT-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 };
 
-export const getInvoicePaymentLink = (invoiceId: string): string => {
-  return `${window.location.origin}/invoice/${invoiceId}`;
+export const getInvoicePaymentLink = (publicToken: string): string => {
+  return `${window.location.origin}/invoice/${publicToken}`;
 };
