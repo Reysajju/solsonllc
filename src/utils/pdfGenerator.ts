@@ -25,32 +25,32 @@ export const generateInvoicePDF = (invoice: Invoice): void => {
   };
 
   // Header - Company Logo and Info
-  doc.setFillColor(37, 99, 235); // Royal blue
+  doc.setFillColor(37, 99, 235); // Primary blue
   doc.rect(0, 0, pageWidth, 40, 'F');
   
-  // Company logo (simple rectangle with "S")
+  // Company logo (simple rectangle with building icon)
   doc.setFillColor(255, 255, 255);
   doc.rect(margin, 10, 20, 20, 'F');
   doc.setTextColor(37, 99, 235);
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text('S', margin + 8, 24);
+  doc.text('B', margin + 8, 24);
 
   // Company name and details
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
-  doc.text('Solson LLC', margin + 30, 20);
+  doc.text('Invoice Portal', margin + 30, 20);
   
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text('Professional Services', margin + 30, 28);
+  doc.text('Professional Invoice Management', margin + 30, 28);
 
   // Company contact info (right side)
   const contactInfo = [
     '1234 Business Ave, Suite 100',
     'New York, NY 10001',
-    'billing@solsonllc.com',
+    'billing@yourcompany.com',
     '(555) 123-4567'
   ];
   
@@ -275,19 +275,6 @@ export const generateInvoicePDF = (invoice: Invoice): void => {
     yPosition += 30;
   }
 
-  // Add public payment link for easy sharing
-  if ((invoice as any).public_token) {
-    doc.setTextColor(37, 99, 235);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Pay Online:', margin, yPosition);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(0, 0, 0);
-    const paymentUrl = `${window.location.origin}/invoice/${(invoice as any).public_token}`;
-    doc.textWithLink(paymentUrl, margin + 25, yPosition, { url: paymentUrl });
-    yPosition += 10;
-  }
-
   // Notes section (if applicable)
   if (invoice.notes) {
     doc.setTextColor(0, 0, 0);
@@ -311,7 +298,7 @@ export const generateInvoicePDF = (invoice: Invoice): void => {
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.text('Thank you for your business!', margin, footerY);
-  doc.text('Questions? Contact us at support@solsonllc.com | (555) 123-4567', margin, footerY + 6);
+  doc.text('Questions? Contact us at support@yourcompany.com | (555) 123-4567', margin, footerY + 6);
   
   // Page number and generation date
   doc.text(`Generated on ${new Date().toLocaleDateString()}`, pageWidth - margin - 50, footerY);

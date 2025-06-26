@@ -7,8 +7,8 @@ import { Dashboard } from './components/Dashboard';
 import { InvoiceForm } from './components/InvoiceForm';
 import { InvoiceList } from './components/InvoiceList';
 import { InvoiceView } from './components/InvoiceView';
-import { PublicInvoice } from './components/PublicInvoice';
 import { ClientList } from './components/ClientList';
+import { SettingsPanel } from './components/SettingsPanel';
 
 const AppRoutes: React.FC = () => {
   const { user } = useAuthContext();
@@ -16,9 +16,6 @@ const AppRoutes: React.FC = () => {
   return (
     <Router>
       <Routes>
-        {/* Public Invoice Route (no authentication required) */}
-        <Route path="/invoice/:token" element={<PublicInvoice />} />
-
         {/* Authentication Check */}
         {!user ? (
           <Route path="*" element={<Login />} />
@@ -32,6 +29,8 @@ const AppRoutes: React.FC = () => {
                 <Route path="/invoices/new" element={<InvoiceForm />} />
                 <Route path="/invoices/:id" element={<InvoiceView />} />
                 <Route path="/clients" element={<ClientList />} />
+                <Route path="/settings" element={<SettingsPanel />} />
+                <Route path="/profile" element={<SettingsPanel />} />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>
             </Layout>

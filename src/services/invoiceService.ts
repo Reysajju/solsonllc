@@ -25,7 +25,6 @@ export const invoiceService = {
     if (!user.data.user) throw new Error('User not authenticated');
 
     const invoiceId = await this.generateInvoiceId();
-    const publicToken = uuidv4();
     
     // Calculate totals
     const subtotal = invoiceData.items.reduce((sum, item) => sum + item.total, 0);
@@ -36,7 +35,7 @@ export const invoiceService = {
     const tax = (subtotalAfterDiscount * invoiceData.taxRate) / 100;
     const total = subtotalAfterDiscount + tax;
 
-    // Insert invoice
+    // Insert invoice (without public_token)
     const { data: invoice, error: invoiceError } = await supabase
       .from('invoices')
       .insert({
@@ -53,7 +52,6 @@ export const invoiceService = {
         payment_method: invoiceData.paymentMethod,
         notes: invoiceData.notes,
         due_date: invoiceData.dueDate?.toISOString(),
-        public_token: publicToken,
       })
       .select()
       .single();
@@ -123,56 +121,6 @@ export const invoiceService = {
       createdAt: new Date(invoice.created_at),
       dueDate: invoice.due_date ? new Date(invoice.due_date) : undefined,
       paidAt: invoice.paid_at ? new Date(invoice.paid_at) : undefined,
-      public_token: invoice.public_token, // Make sure this is included
-    };
-  },
-
-  // Get invoice by public token (for public access)
-  async getInvoiceByToken(token: string): Promise<Invoice> {
-    const { data: invoice, error: invoiceError } = await supabase
-      .from('invoices')
-      .select(`
-        *,
-        clients (*),
-        invoice_items (*)
-      `)
-      .eq('public_token', token)
-      .single();
-
-    if (invoiceError) throw invoiceError;
-
-    return {
-      id: invoice.id,
-      clientId: invoice.client_id,
-      client: {
-        id: invoice.clients.id,
-        name: invoice.clients.name,
-        company: invoice.clients.company,
-        email: invoice.clients.email,
-        address: invoice.clients.address,
-        createdAt: new Date(invoice.clients.created_at),
-      },
-      items: invoice.invoice_items.map((item: any) => ({
-        id: item.id,
-        description: item.description,
-        quantity: item.quantity,
-        unitPrice: item.unit_price,
-        total: item.total,
-      })),
-      subtotal: invoice.subtotal,
-      tax: invoice.tax,
-      taxRate: invoice.tax_rate,
-      discount: invoice.discount,
-      discountType: invoice.discount_type,
-      discountValue: invoice.discount_value,
-      total: invoice.total,
-      status: invoice.status,
-      paymentMethod: invoice.payment_method,
-      notes: invoice.notes,
-      createdAt: new Date(invoice.created_at),
-      dueDate: invoice.due_date ? new Date(invoice.due_date) : undefined,
-      paidAt: invoice.paid_at ? new Date(invoice.paid_at) : undefined,
-      public_token: invoice.public_token, // Make sure this is included
     };
   },
 
@@ -224,7 +172,6 @@ export const invoiceService = {
       createdAt: new Date(invoice.created_at),
       dueDate: invoice.due_date ? new Date(invoice.due_date) : undefined,
       paidAt: invoice.paid_at ? new Date(invoice.paid_at) : undefined,
-      public_token: invoice.public_token, // Make sure this is included
     }));
   },
 
@@ -237,6 +184,8 @@ export const invoiceService = {
     
     if (status === 'paid') {
       updateData.paid_at = new Date().toISOString();
+    } else if (status === 'unpaid') {
+      updateData.paid_at = null;
     }
 
     const { error } = await supabase
@@ -245,11 +194,5 @@ export const invoiceService = {
       .eq('id', id);
 
     if (error) throw error;
-  },
-
-  // Get public payment link
-  getPaymentLink(publicToken: string): string {
-    const baseUrl = window.location.origin;
-    return `${baseUrl}/invoice/${publicToken}`;
   },
 };

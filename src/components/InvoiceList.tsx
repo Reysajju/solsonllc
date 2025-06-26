@@ -1,37 +1,67 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Plus, Search, Filter, Eye, ExternalLink } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Plus, Search, Filter, Eye, Download } from 'lucide-react';
 import { Invoice } from '../types';
-import { loadInvoices } from '../utils/storage';
+import { invoiceService } from '../services/invoiceService';
+import { LoadingSpinner } from './LoadingSpinner';
 
 export const InvoiceList: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [filteredInvoices, setFilteredInvoices] = useState<Invoice[]>([]);
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState<string>(searchParams.get('search') || '');
+  const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('filter') || 'all');
   const [sortBy, setSortBy] = useState<string>('date-desc');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadedInvoices = loadInvoices();
-    setInvoices(loadedInvoices);
-    setFilteredInvoices(loadedInvoices);
+    const loadInvoices = async () => {
+      try {
+        setLoading(true);
+        const loadedInvoices = await invoiceService.getUserInvoices();
+        setInvoices(loadedInvoices);
+      } catch (error) {
+        console.error('Error loading invoices:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadInvoices();
+
+    // Set up real-time updates
+    const interval = setInterval(loadInvoices, 30000); // Refresh every 30 seconds
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
     let filtered = [...invoices];
 
-    // Search filter
+    // Enhanced search filter
     if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter(invoice =>
-        invoice.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        invoice.client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        invoice.client.company?.toLowerCase().includes(searchTerm.toLowerCase())
+        invoice.id.toLowerCase().includes(searchLower) ||
+        invoice.client.name.toLowerCase().includes(searchLower) ||
+        invoice.client.company?.toLowerCase().includes(searchLower) ||
+        invoice.client.email.toLowerCase().includes(searchLower) ||
+        invoice.paymentMethod.toLowerCase().includes(searchLower) ||
+        invoice.notes?.toLowerCase().includes(searchLower) ||
+        invoice.total.toString().includes(searchTerm)
       );
     }
 
     // Status filter
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(invoice => invoice.status === statusFilter);
+      if (statusFilter === 'overdue') {
+        filtered = filtered.filter(invoice => 
+          invoice.status === 'unpaid' && 
+          invoice.dueDate && 
+          new Date() > new Date(invoice.dueDate)
+        );
+      } else {
+        filtered = filtered.filter(invoice => invoice.status === statusFilter);
+      }
     }
 
     // Sort
@@ -47,13 +77,21 @@ export const InvoiceList: React.FC = () => {
           return a.total - b.total;
         case 'client':
           return a.client.name.localeCompare(b.client.name);
+        case 'status':
+          return a.status.localeCompare(b.status);
         default:
           return 0;
       }
     });
 
     setFilteredInvoices(filtered);
-  }, [invoices, searchTerm, statusFilter, sortBy]);
+
+    // Update URL params
+    const params = new URLSearchParams();
+    if (searchTerm) params.set('search', searchTerm);
+    if (statusFilter !== 'all') params.set('filter', statusFilter);
+    setSearchParams(params);
+  }, [invoices, searchTerm, statusFilter, sortBy, setSearchParams]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -62,19 +100,22 @@ export const InvoiceList: React.FC = () => {
     }).format(amount);
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      paid: { bg: 'bg-emerald-100', text: 'text-emerald-800', label: 'Paid' },
-      unpaid: { bg: 'bg-amber-100', text: 'text-amber-800', label: 'Unpaid' },
-      failed: { bg: 'bg-red-100', text: 'text-red-800', label: 'Failed' },
-    };
+  const getStatusBadge = (status: string, dueDate?: Date) => {
+    const isOverdue = dueDate && new Date() > dueDate;
     
-    const config = statusConfig[status as keyof typeof statusConfig];
-    return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
-        {config.label}
-      </span>
-    );
+    if (status === 'paid') {
+      return <span className="badge-paid">Paid</span>;
+    }
+    
+    if (status === 'failed') {
+      return <span className="badge-failed">Failed</span>;
+    }
+    
+    if (isOverdue) {
+      return <span className="badge-overdue">Overdue</span>;
+    }
+    
+    return <span className="badge-unpaid">Unpaid</span>;
   };
 
   const getPaymentMethodLabel = (method: string) => {
@@ -82,9 +123,19 @@ export const InvoiceList: React.FC = () => {
       stripe: 'Stripe',
       paypal: 'PayPal',
       'bank-transfer': 'Bank Transfer',
+      zelle: 'Zelle',
+      wire: 'Wire Transfer',
     };
     return labels[method as keyof typeof labels] || method;
   };
+
+  if (loading) {
+    return (
+      <div className="p-8 flex items-center justify-center">
+        <LoadingSpinner size="lg" text="Loading invoices..." />
+      </div>
+    );
+  }
 
   return (
     <div className="p-8 animate-fade-in">
@@ -96,7 +147,7 @@ export const InvoiceList: React.FC = () => {
           </div>
           <Link
             to="/invoices/new"
-            className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-royal-600 hover:bg-royal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-royal-500 transition-colors shadow-lg hover:shadow-xl"
+            className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors shadow-lg hover:shadow-xl"
           >
             <Plus className="mr-2 h-4 w-4" />
             New Invoice
@@ -104,28 +155,29 @@ export const InvoiceList: React.FC = () => {
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Enhanced Filters */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
               type="text"
-              placeholder="Search invoices..."
+              placeholder="Search invoices, clients, amounts..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 block w-full rounded-lg border-slate-300 shadow-sm focus:border-royal-500 focus:ring-royal-500"
+              className="pl-10 block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
             />
           </div>
           <div>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-royal-500 focus:ring-royal-500"
+              className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
             >
               <option value="all">All Status</option>
               <option value="paid">Paid</option>
               <option value="unpaid">Unpaid</option>
+              <option value="overdue">Overdue</option>
               <option value="failed">Failed</option>
             </select>
           </div>
@@ -133,13 +185,14 @@ export const InvoiceList: React.FC = () => {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-royal-500 focus:ring-royal-500"
+              className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
             >
               <option value="date-desc">Newest First</option>
               <option value="date-asc">Oldest First</option>
               <option value="amount-desc">Highest Amount</option>
               <option value="amount-asc">Lowest Amount</option>
               <option value="client">Client Name</option>
+              <option value="status">Status</option>
             </select>
           </div>
           <div className="flex items-center text-sm text-slate-600">
@@ -181,7 +234,7 @@ export const InvoiceList: React.FC = () => {
             <tbody className="bg-white divide-y divide-slate-200">
               {filteredInvoices.map((invoice) => (
                 <tr key={invoice.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-royal-600">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary-600">
                     <Link to={`/invoices/${invoice.id}`} className="hover:underline">
                       {invoice.id}
                     </Link>
@@ -200,7 +253,7 @@ export const InvoiceList: React.FC = () => {
                     {formatCurrency(invoice.total)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {getStatusBadge(invoice.status)}
+                    {getStatusBadge(invoice.status, invoice.dueDate)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                     {getPaymentMethodLabel(invoice.paymentMethod)}
@@ -212,18 +265,13 @@ export const InvoiceList: React.FC = () => {
                     <div className="flex items-center space-x-2">
                       <Link
                         to={`/invoices/${invoice.id}`}
-                        className="text-royal-600 hover:text-royal-900 transition-colors"
+                        className="text-primary-600 hover:text-primary-900 transition-colors"
                       >
                         <Eye className="h-4 w-4" />
                       </Link>
-                      <a
-                        href={`/invoice/${invoice.id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-slate-400 hover:text-slate-600 transition-colors"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                      </a>
+                      <button className="text-slate-400 hover:text-slate-600 transition-colors">
+                        <Download className="h-4 w-4" />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -255,7 +303,7 @@ export const InvoiceList: React.FC = () => {
                 <div className="mt-6">
                   <Link
                     to="/invoices/new"
-                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-royal-600 hover:bg-royal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-royal-500"
+                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
                   >
                     <Plus className="mr-2 h-4 w-4" />
                     New Invoice

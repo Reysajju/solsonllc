@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Crown, Mail, Lock, ArrowRight, Sparkles, Shield, Eye, EyeOff } from 'lucide-react';
+import { Building2, Mail, Lock, ArrowRight, Shield, Eye, EyeOff } from 'lucide-react';
 import { useAuthContext } from './AuthProvider';
 
 export const Login: React.FC = () => {
@@ -9,16 +9,40 @@ export const Login: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [captcha, setCaptcha] = useState({ num1: 0, num2: 0, answer: '' });
+
+  // Generate simple math captcha
+  React.useEffect(() => {
+    const num1 = Math.floor(Math.random() * 10) + 1;
+    const num2 = Math.floor(Math.random() * 10) + 1;
+    setCaptcha({ num1, num2, answer: '' });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError('');
+
+    // Validate captcha
+    const correctAnswer = captcha.num1 + captcha.num2;
+    if (parseInt(captcha.answer) !== correctAnswer) {
+      setError('Please solve the math problem correctly');
+      // Generate new captcha
+      const num1 = Math.floor(Math.random() * 10) + 1;
+      const num2 = Math.floor(Math.random() * 10) + 1;
+      setCaptcha({ num1, num2, answer: '' });
+      return;
+    }
+
+    setIsLoading(true);
     try {
       const { error } = await signIn(email, password);
       if (error) throw error;
     } catch (error: any) {
       setError(error.message || 'An error occurred during authentication');
+      // Generate new captcha on error
+      const num1 = Math.floor(Math.random() * 10) + 1;
+      const num2 = Math.floor(Math.random() * 10) + 1;
+      setCaptcha({ num1, num2, answer: '' });
     } finally {
       setIsLoading(false);
     }
@@ -29,21 +53,18 @@ export const Login: React.FC = () => {
       <div className="w-full max-w-md p-8 bg-white bg-opacity-5 rounded-2xl shadow-xl border border-white border-opacity-10 animate-fade-in">
         {/* Logo and Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-gold-400 to-gold-600 rounded-3xl shadow-premium mb-6 relative">
-            <Crown className="h-10 w-10 text-white" />
-            <div className="absolute -top-2 -right-2 h-6 w-6 bg-emerald-400 rounded-full flex items-center justify-center animate-pulse">
-              <Sparkles className="h-3 w-3 text-white" />
-            </div>
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary-500 to-primary-700 rounded-3xl shadow-premium mb-6 relative">
+            <Building2 className="h-10 w-10 text-white" />
           </div>
-          <h1 className="text-4xl font-bold text-white mb-3 font-serif">Solson LLC</h1>
-          <p className="text-primary-200 text-lg">Royal CRM & Invoice Portal</p>
+          <h1 className="text-4xl font-bold text-white mb-3 font-serif">Invoice Portal</h1>
+          <p className="text-primary-200 text-lg">Professional Invoice Management</p>
           <div className="flex items-center justify-center mt-4 space-x-2">
             <Shield className="h-4 w-4 text-emerald-400" />
             <span className="text-primary-300 text-sm">Secure Enterprise Access</span>
           </div>
         </div>
 
-        {/* Login Form Only */}
+        {/* Login Form */}
         <div className="glass-effect rounded-3xl shadow-premium border border-white border-opacity-20 p-8 animate-slide-up backdrop-blur-xl">
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
@@ -61,7 +82,7 @@ export const Login: React.FC = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-12 block w-full rounded-xl border-0 bg-white bg-opacity-10 backdrop-blur-sm text-white placeholder-primary-300 shadow-sm focus:bg-opacity-20 focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 transition-all duration-200 py-4"
+                  className="pl-12 block w-full rounded-xl border-0 bg-white bg-opacity-10 backdrop-blur-sm text-white placeholder-primary-300 shadow-sm focus:bg-opacity-20 focus:ring-2 focus:ring-primary-400 focus:ring-opacity-50 transition-all duration-200 py-4"
                   placeholder="Enter your email"
                   required
                 />
@@ -77,7 +98,7 @@ export const Login: React.FC = () => {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-12 pr-12 block w-full rounded-xl border-0 bg-white bg-opacity-10 backdrop-blur-sm text-white placeholder-primary-300 shadow-sm focus:bg-opacity-20 focus:ring-2 focus:ring-gold-400 focus:ring-opacity-50 transition-all duration-200 py-4"
+                  className="pl-12 pr-12 block w-full rounded-xl border-0 bg-white bg-opacity-10 backdrop-blur-sm text-white placeholder-primary-300 shadow-sm focus:bg-opacity-20 focus:ring-2 focus:ring-primary-400 focus:ring-opacity-50 transition-all duration-200 py-4"
                   placeholder="Enter your password"
                   required
                 />
@@ -90,10 +111,26 @@ export const Login: React.FC = () => {
                 </button>
               </div>
             </div>
+            
+            {/* Simple Math Captcha */}
+            <div>
+              <label className="block text-sm font-semibold text-white mb-3">
+                Security Check: What is {captcha.num1} + {captcha.num2}?
+              </label>
+              <input
+                type="number"
+                value={captcha.answer}
+                onChange={(e) => setCaptcha({ ...captcha, answer: e.target.value })}
+                className="block w-full rounded-xl border-0 bg-white bg-opacity-10 backdrop-blur-sm text-white placeholder-primary-300 shadow-sm focus:bg-opacity-20 focus:ring-2 focus:ring-primary-400 focus:ring-opacity-50 transition-all duration-200 py-4"
+                placeholder="Enter the answer"
+                required
+              />
+            </div>
+
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex items-center justify-center px-6 py-4 border border-transparent text-lg font-semibold rounded-xl text-primary-900 bg-gradient-to-r from-gold-400 to-gold-500 hover:from-gold-500 hover:to-gold-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gold-400 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:shadow-lg"
+              className="w-full flex items-center justify-center px-6 py-4 border border-transparent text-lg font-semibold rounded-xl text-primary-900 bg-gradient-to-r from-primary-400 to-primary-500 hover:from-primary-500 hover:to-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-400 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:shadow-lg"
             >
               {isLoading ? (
                 <>
@@ -118,23 +155,19 @@ export const Login: React.FC = () => {
               <Lock className="h-3 w-3 mr-1" />
               <span>Encrypted</span>
             </div>
-            <div className="flex items-center">
-              <Sparkles className="h-3 w-3 mr-1" />
-              <span>Secure</span>
-            </div>
           </div>
         </div>
         {/* Footer */}
         <div className="text-center mt-8 animate-fade-in">
           <p className="text-sm text-primary-300">
-            © 2025 Solson LLC. All rights reserved.
+            © 2025 Invoice Portal. All rights reserved.
           </p>
           <div className="flex items-center justify-center mt-2 space-x-4 text-xs text-primary-400">
-            <a href="#" className="hover:text-gold-400 transition-colors">Privacy Policy</a>
+            <a href="#" className="hover:text-primary-200 transition-colors">Privacy Policy</a>
             <span>•</span>
-            <a href="#" className="hover:text-gold-400 transition-colors">Terms of Service</a>
+            <a href="#" className="hover:text-primary-200 transition-colors">Terms of Service</a>
             <span>•</span>
-            <a href="#" className="hover:text-gold-400 transition-colors">Support</a>
+            <a href="#" className="hover:text-primary-200 transition-colors">Support</a>
           </div>
         </div>
       </div>

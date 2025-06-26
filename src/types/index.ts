@@ -28,12 +28,11 @@ export interface Invoice {
   discountValue: number;
   total: number;
   status: 'unpaid' | 'paid' | 'failed';
-  paymentMethod: 'stripe' | 'paypal' | 'bank-transfer';
+  paymentMethod: 'stripe' | 'paypal' | 'bank-transfer' | 'zelle' | 'wire';
   notes?: string;
   createdAt: Date;
   dueDate?: Date;
   paidAt?: Date;
-  public_token: string; // Make this required, not optional
 }
 
 export interface DashboardStats {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2, Save, Calendar } from 'lucide-react';
+import { Plus, Trash2, Save, Calendar, Link as LinkIcon } from 'lucide-react';
 import { Client, InvoiceItem } from '../types';
 import { clientService } from '../services/clientService';
 import { invoiceService } from '../services/invoiceService';
@@ -30,11 +30,12 @@ export const InvoiceForm: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'paypal' | 'bank-transfer' | 'zelle' | 'wire'>('stripe');
   const [notes, setNotes] = useState<string>('');
   const [dueDate, setDueDate] = useState<string>(() => {
-    // Default to 30 days from now
     const date = new Date();
     date.setDate(date.getDate() + 30);
     return date.toISOString().split('T')[0];
   });
+  const [includePaymentLink, setIncludePaymentLink] = useState<boolean>(false);
+  const [paymentLinkUrl, setPaymentLinkUrl] = useState<string>('');
 
   useEffect(() => {
     const loadClients = async () => {
@@ -112,22 +113,25 @@ export const InvoiceForm: React.FC = () => {
       let clientToUse: Client;
 
       if (isNewClient) {
-        // Create new client
         clientToUse = await clientService.createClient({
           name: newClient.name!,
           company: newClient.company,
           email: newClient.email!,
           address: newClient.address!,
         });
-
-        // Update clients list
         setClients([clientToUse, ...clients]);
       } else {
-        // Use existing client
         clientToUse = clients.find(c => c.id === selectedClientId)!;
       }
 
-      // Create invoice
+      // Prepare notes with payment link if included
+      let finalNotes = notes.trim();
+      if (includePaymentLink && paymentLinkUrl.trim()) {
+        finalNotes = finalNotes 
+          ? `${finalNotes}\n\nPayment Link: ${paymentLinkUrl.trim()}`
+          : `Payment Link: ${paymentLinkUrl.trim()}`;
+      }
+
       const invoice = await invoiceService.createInvoice({
         clientId: clientToUse.id,
         items: items.filter(item => item.description.trim() !== ''),
@@ -135,7 +139,7 @@ export const InvoiceForm: React.FC = () => {
         discountType,
         discountValue,
         paymentMethod,
-        notes: notes.trim() || undefined,
+        notes: finalNotes || undefined,
         dueDate: new Date(dueDate),
       });
 
@@ -212,7 +216,7 @@ export const InvoiceForm: React.FC = () => {
               <select
                 value={selectedClientId}
                 onChange={(e) => setSelectedClientId(e.target.value)}
-                className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-royal-500 focus:ring-royal-500"
+                className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                 required={!isNewClient}
               >
                 <option value="">Choose a client...</option>
@@ -233,7 +237,7 @@ export const InvoiceForm: React.FC = () => {
                   type="text"
                   value={newClient.name || ''}
                   onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
-                  className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-royal-500 focus:ring-royal-500"
+                  className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                   required={isNewClient}
                 />
               </div>
@@ -245,7 +249,7 @@ export const InvoiceForm: React.FC = () => {
                   type="text"
                   value={newClient.company || ''}
                   onChange={(e) => setNewClient({ ...newClient, company: e.target.value })}
-                  className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-royal-500 focus:ring-royal-500"
+                  className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                 />
               </div>
               <div>
@@ -256,7 +260,7 @@ export const InvoiceForm: React.FC = () => {
                   type="email"
                   value={newClient.email || ''}
                   onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
-                  className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-royal-500 focus:ring-royal-500"
+                  className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                   required={isNewClient}
                 />
               </div>
@@ -268,7 +272,7 @@ export const InvoiceForm: React.FC = () => {
                   value={newClient.address || ''}
                   onChange={(e) => setNewClient({ ...newClient, address: e.target.value })}
                   rows={3}
-                  className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-royal-500 focus:ring-royal-500"
+                  className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                   required={isNewClient}
                 />
               </div>
@@ -283,7 +287,7 @@ export const InvoiceForm: React.FC = () => {
             <button
               type="button"
               onClick={addItem}
-              className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-royal-700 bg-royal-100 hover:bg-royal-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-royal-500"
+              className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-primary-700 bg-primary-100 hover:bg-primary-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
             >
               <Plus className="mr-1 h-4 w-4" />
               Add Item
@@ -301,7 +305,7 @@ export const InvoiceForm: React.FC = () => {
                     type="text"
                     value={item.description}
                     onChange={(e) => updateItem(item.id, 'description', e.target.value)}
-                    className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-royal-500 focus:ring-royal-500"
+                    className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                     placeholder="Item description..."
                   />
                 </div>
@@ -314,7 +318,7 @@ export const InvoiceForm: React.FC = () => {
                     min="1"
                     value={item.quantity}
                     onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
-                    className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-royal-500 focus:ring-royal-500"
+                    className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                   />
                 </div>
                 <div className="col-span-2">
@@ -327,7 +331,7 @@ export const InvoiceForm: React.FC = () => {
                     step="0.01"
                     value={item.unitPrice}
                     onChange={(e) => updateItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
-                    className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-royal-500 focus:ring-royal-500"
+                    className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                   />
                 </div>
                 <div className="col-span-2">
@@ -370,7 +374,7 @@ export const InvoiceForm: React.FC = () => {
                 step="0.1"
                 value={taxRate}
                 onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
-                className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-royal-500 focus:ring-royal-500"
+                className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
               />
             </div>
             <div>
@@ -380,7 +384,7 @@ export const InvoiceForm: React.FC = () => {
               <select
                 value={discountType}
                 onChange={(e) => setDiscountType(e.target.value as 'percentage' | 'fixed')}
-                className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-royal-500 focus:ring-royal-500"
+                className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
               >
                 <option value="percentage">Percentage</option>
                 <option value="fixed">Fixed Amount</option>
@@ -396,7 +400,7 @@ export const InvoiceForm: React.FC = () => {
                 step="0.01"
                 value={discountValue}
                 onChange={(e) => setDiscountValue(parseFloat(e.target.value) || 0)}
-                className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-royal-500 focus:ring-royal-500"
+                className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
               />
             </div>
             <div>
@@ -408,7 +412,7 @@ export const InvoiceForm: React.FC = () => {
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-royal-500 focus:ring-royal-500"
+                className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                 required
               />
             </div>
@@ -448,7 +452,7 @@ export const InvoiceForm: React.FC = () => {
               <select
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value as any)}
-                className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-royal-500 focus:ring-royal-500"
+                className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
               >
                 <option value="stripe">Credit/Debit Card (Stripe)</option>
                 <option value="paypal">PayPal</option>
@@ -465,10 +469,44 @@ export const InvoiceForm: React.FC = () => {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={3}
-                className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-royal-500 focus:ring-royal-500"
+                className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                 placeholder="Any additional notes or terms..."
               />
             </div>
+          </div>
+
+          {/* Payment Link Option */}
+          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center mb-3">
+              <input
+                type="checkbox"
+                id="includePaymentLink"
+                checked={includePaymentLink}
+                onChange={(e) => setIncludePaymentLink(e.target.checked)}
+                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-slate-300 rounded"
+              />
+              <label htmlFor="includePaymentLink" className="ml-2 text-sm font-medium text-slate-700">
+                <LinkIcon className="inline h-4 w-4 mr-1" />
+                Include Payment Link in Invoice
+              </label>
+            </div>
+            {includePaymentLink && (
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Payment Link URL
+                </label>
+                <input
+                  type="url"
+                  value={paymentLinkUrl}
+                  onChange={(e) => setPaymentLinkUrl(e.target.value)}
+                  className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                  placeholder="https://your-payment-gateway.com/pay/..."
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  This link will be included in the invoice notes for client payment
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -477,7 +515,7 @@ export const InvoiceForm: React.FC = () => {
           <button
             type="submit"
             disabled={submitting}
-            className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-royal-600 hover:bg-royal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-royal-500 transition-colors shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? (
               <>

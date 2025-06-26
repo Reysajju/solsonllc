@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, ExternalLink, CheckCircle, Building2, MapPin, Mail, Phone, Copy, Check, Calendar, Clock, Download } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Building2, MapPin, Mail, Phone, Calendar, Clock, Download, Edit } from 'lucide-react';
 import { Invoice } from '../types';
 import { invoiceService } from '../services/invoiceService';
 import { generateInvoicePDF } from '../utils/pdfGenerator';
@@ -11,7 +11,6 @@ export const InvoiceView: React.FC = () => {
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState<boolean>(false);
 
   useEffect(() => {
     const loadInvoice = async () => {
@@ -46,23 +45,13 @@ export const InvoiceView: React.FC = () => {
     }
   };
 
-  const copyPaymentLink = async () => {
-    if (invoice && invoice.public_token) {
-      const paymentLink = `${window.location.origin}/invoice/${invoice.public_token}`;
+  const markAsUnpaid = async () => {
+    if (invoice) {
       try {
-        await navigator.clipboard.writeText(paymentLink);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      } catch (err) {
-        // Fallback for older browsers
-        const textArea = document.createElement('textarea');
-        textArea.value = paymentLink;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        await invoiceService.updateInvoiceStatus(invoice.id, 'unpaid');
+        setInvoice({ ...invoice, status: 'unpaid', paidAt: undefined });
+      } catch (error) {
+        console.error('Error updating invoice status:', error);
       }
     }
   };
@@ -145,7 +134,7 @@ export const InvoiceView: React.FC = () => {
           <p className="text-slate-600 mb-6">{error || 'The invoice you\'re looking for doesn\'t exist.'}</p>
           <Link
             to="/invoices"
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-royal-600 hover:bg-royal-700"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Invoices
@@ -155,9 +144,6 @@ export const InvoiceView: React.FC = () => {
     );
   }
 
-  const paymentLink = invoice.public_token 
-    ? `${window.location.origin}/invoice/${invoice.public_token}`
-    : null;
   const daysUntilDue = getDaysUntilDue(invoice.dueDate);
 
   return (
@@ -165,7 +151,7 @@ export const InvoiceView: React.FC = () => {
       <div className="mb-6">
         <Link
           to="/invoices"
-          className="inline-flex items-center text-royal-600 hover:text-royal-800 transition-colors mb-4"
+          className="inline-flex items-center text-primary-600 hover:text-primary-800 transition-colors mb-4"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Invoices
@@ -209,24 +195,21 @@ export const InvoiceView: React.FC = () => {
               <Download className="mr-2 h-4 w-4" />
               Download PDF
             </button>
-            {paymentLink && (
-              <a
-                href={paymentLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 transition-colors"
-              >
-                <ExternalLink className="mr-2 h-4 w-4" />
-                View Public Invoice
-              </a>
-            )}
-            {invoice.status === 'unpaid' && (
+            {invoice.status === 'unpaid' ? (
               <button
                 onClick={markAsPaid}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-emerald-600 hover:bg-emerald-700 transition-colors"
               >
                 <CheckCircle className="mr-2 h-4 w-4" />
                 Mark as Paid
+              </button>
+            ) : (
+              <button
+                onClick={markAsUnpaid}
+                className="inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 transition-colors"
+              >
+                <Edit className="mr-2 h-4 w-4" />
+                Mark as Unpaid
               </button>
             )}
           </div>
@@ -263,69 +246,6 @@ export const InvoiceView: React.FC = () => {
         </div>
       )}
 
-      {/* Payment Link Section */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-        <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center">
-          <ExternalLink className="mr-2 h-5 w-5 text-primary-600" />
-          Global Payment Link
-        </h3>
-        <p className="text-slate-600 mb-4">
-          Share this secure link with your client to allow them to pay the invoice online from anywhere in the world. 
-          The link includes secure card payment processing and works on all devices.
-        </p>
-        {paymentLink ? (
-          <div className="flex items-center space-x-3">
-            <div className="flex-1 bg-gradient-to-r from-primary-50 to-primary-100 rounded-lg p-4 border border-primary-200">
-              <div className="flex items-center space-x-2 mb-2">
-                <div className="h-2 w-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                <span className="text-xs font-medium text-primary-700 uppercase tracking-wide">Live Payment Link</span>
-              </div>
-              <code className="text-sm text-primary-800 break-all font-mono">{paymentLink}</code>
-            </div>
-            <button
-              onClick={copyPaymentLink}
-              className={`inline-flex items-center px-4 py-3 border border-transparent text-sm font-medium rounded-lg transition-all duration-200 ${
-                copied 
-                  ? 'text-emerald-700 bg-emerald-100 border-emerald-300 shadow-sm' 
-                  : 'text-white bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
-              }`}
-            >
-              {copied ? (
-                <>
-                  <Check className="mr-2 h-4 w-4" />
-                  Copied!
-                </>
-              ) : (
-                <>
-                  <Copy className="mr-2 h-4 w-4" />
-                  Copy Link
-                </>
-              )}
-            </button>
-          </div>
-        ) : (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="flex items-center">
-              <div className="h-2 w-2 bg-red-500 rounded-full mr-2"></div>
-              <span className="text-red-800 font-medium">No public link available - Please contact support</span>
-            </div>
-          </div>
-        )}
-        
-        {paymentLink && (
-          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h4 className="font-medium text-blue-900 mb-2">✨ Payment Features:</h4>
-            <ul className="text-sm text-blue-800 space-y-1">
-              <li>• Secure credit/debit card processing</li>
-              <li>• Works worldwide on any device</li>
-              <li>• Real-time payment notifications</li>
-              <li>• Automatic receipt generation</li>
-              <li>• Mobile-optimized payment flow</li>
-            </ul>
-          </div>
-        )}
-      </div>
-
       {/* Invoice Details */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="p-8">
@@ -336,11 +256,11 @@ export const InvoiceView: React.FC = () => {
               <h3 className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-4">From</h3>
               <div className="bg-slate-50 rounded-lg p-6">
                 <div className="flex items-center space-x-3 mb-4">
-                  <div className="h-10 w-10 bg-royal-600 rounded-lg flex items-center justify-center">
-                    <span className="text-white font-bold text-lg">S</span>
+                  <div className="h-10 w-10 bg-primary-600 rounded-lg flex items-center justify-center">
+                    <Building2 className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-slate-900">Solson LLC</h2>
+                    <h2 className="text-xl font-bold text-slate-900">Your Company</h2>
                     <p className="text-slate-600 text-sm">Professional Services</p>
                   </div>
                 </div>
@@ -355,7 +275,7 @@ export const InvoiceView: React.FC = () => {
                   </div>
                   <div className="flex items-center">
                     <Mail className="h-4 w-4 mr-2" />
-                    <span>billing@solsonllc.com</span>
+                    <span>billing@yourcompany.com</span>
                   </div>
                   <div className="flex items-center">
                     <Phone className="h-4 w-4 mr-2" />
