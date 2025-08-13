@@ -5,6 +5,7 @@ import { Client, InvoiceItem } from '../types';
 import { clientService } from '../services/clientService';
 import { invoiceService } from '../services/invoiceService';
 import { LoadingSpinner } from './LoadingSpinner';
+import { paymentService } from '../services/paymentService';
 
 export const InvoiceForm: React.FC = () => {
   const navigate = useNavigate();
@@ -36,6 +37,30 @@ export const InvoiceForm: React.FC = () => {
   });
   const [includePaymentLink, setIncludePaymentLink] = useState<boolean>(false);
   const [paymentLinkUrl, setPaymentLinkUrl] = useState<string>('');
+  const [generatingLink, setGeneratingLink] = useState<boolean>(false);
+  // Auto-generate Stripe payment link when checkbox is checked and payment method is Stripe
+  useEffect(() => {
+    const generateLink = async () => {
+      if (includePaymentLink && paymentMethod === 'stripe') {
+        setGeneratingLink(true);
+        try {
+          // Stripe expects amount in cents
+          const amount = Math.round(calculateTotal() * 100);
+          const description = 'Invoice Payment';
+          const link = await paymentService.generateStripePaymentLink(amount, 'usd', description);
+          setPaymentLinkUrl(link);
+        } catch (err) {
+          setPaymentLinkUrl('');
+        } finally {
+          setGeneratingLink(false);
+        }
+      } else if (!includePaymentLink) {
+        setPaymentLinkUrl('');
+      }
+    };
+    generateLink();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [includePaymentLink, paymentMethod, items, taxRate, discountType, discountValue]);
 
   useEffect(() => {
     const loadClients = async () => {
@@ -498,13 +523,19 @@ export const InvoiceForm: React.FC = () => {
                 <input
                   type="url"
                   value={paymentLinkUrl}
-                  onChange={(e) => setPaymentLinkUrl(e.target.value)}
-                  className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                  placeholder="https://your-payment-gateway.com/pay/..."
+                  readOnly
+                  className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 bg-slate-100"
+                  placeholder="Stripe payment link will appear here..."
                 />
-                <p className="text-xs text-slate-500 mt-1">
-                  This link will be included in the invoice notes for client payment
-                </p>
+                {generatingLink && (
+                  <p className="text-xs text-blue-500 mt-1">Generating Stripe payment link...</p>
+                )}
+                {!generatingLink && paymentLinkUrl && (
+                  <p className="text-xs text-green-600 mt-1">Stripe payment link is ready and will be included in the invoice.</p>
+                )}
+                {!generatingLink && !paymentLinkUrl && (
+                  <p className="text-xs text-red-600 mt-1">Unable to generate Stripe payment link.</p>
+                )}
               </div>
             )}
           </div>
