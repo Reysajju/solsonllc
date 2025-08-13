@@ -21,7 +21,16 @@ const AppRoutes: React.FC = () => {
           <Route path="*" element={<Login />} />
         ) : (
           <Route path="/*" element={
-            <Layout>
+            <Layout darkMode={window.localStorage.getItem('darkMode') === 'true'} colors={{
+              primary: '#6366F1',
+              accent: '#06B6D4',
+              background: '#F3F4F6',
+              card: '#FFFFFF',
+              darkBackground: '#18181B',
+              darkCard: '#23272F',
+              text: '#1E293B',
+              darkText: '#F3F4F6',
+            }}>
               <Routes>
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/dashboard" element={<Dashboard />} />
