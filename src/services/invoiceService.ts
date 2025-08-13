@@ -42,25 +42,43 @@ export const invoiceService = {
       status: 'unpaid',
       paymentMethod: invoiceData.paymentMethod,
       notes: invoiceData.notes,
-      createdAt: new Date(),
-      dueDate: invoiceData.dueDate,
+      createdAt: new Date().toISOString() as any,
+      dueDate: invoiceData.dueDate ? (invoiceData.dueDate.toISOString() as any) : undefined,
       paidAt: undefined,
     };
     invoices.unshift(invoice);
     localStorage.setItem('invoices', JSON.stringify(invoices));
-    return invoice;
+    // Return with Date objects for runtime
+    return {
+      ...invoice,
+      createdAt: new Date(invoice.createdAt),
+      dueDate: invoice.dueDate ? new Date(invoice.dueDate) : undefined,
+      paidAt: invoice.paidAt ? new Date(invoice.paidAt) : undefined,
+    };
   },
 
   // Get invoice by ID
   getInvoiceById: async (id: string): Promise<Invoice | undefined> => {
     const invoices = JSON.parse(localStorage.getItem('invoices') || '[]');
-    return invoices.find((inv: Invoice) => inv.id === id);
+    const invoice = invoices.find((inv: Invoice) => inv.id === id);
+    if (!invoice) return undefined;
+    return {
+      ...invoice,
+      createdAt: new Date(invoice.createdAt),
+      dueDate: invoice.dueDate ? new Date(invoice.dueDate) : undefined,
+      paidAt: invoice.paidAt ? new Date(invoice.paidAt) : undefined,
+    };
   },
 
   // Get all invoices
   getUserInvoices: async (): Promise<Invoice[]> => {
     const invoices = JSON.parse(localStorage.getItem('invoices') || '[]');
-    return invoices;
+    return invoices.map((invoice: Invoice) => ({
+      ...invoice,
+      createdAt: new Date(invoice.createdAt),
+      dueDate: invoice.dueDate ? new Date(invoice.dueDate) : undefined,
+      paidAt: invoice.paidAt ? new Date(invoice.paidAt) : undefined,
+    }));
   },
 
   // Update invoice status
