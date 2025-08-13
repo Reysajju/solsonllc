@@ -27,10 +27,13 @@ export const invoiceService = {
     const subtotalAfterDiscount = subtotal - discount;
     const tax = (subtotalAfterDiscount * invoiceData.taxRate) / 100;
     const total = subtotalAfterDiscount + tax;
+    // Load clients from localStorage
+    const clients = JSON.parse(localStorage.getItem('clients') || '[]');
+    const clientObj = clients.find((c: any) => c.id === invoiceData.clientId);
     const invoice: Invoice = {
       id: invoiceId,
       clientId: invoiceData.clientId,
-      client: undefined,
+      client: clientObj,
       items: invoiceData.items,
       subtotal,
       tax,
@@ -51,6 +54,7 @@ export const invoiceService = {
     // Return with Date objects for runtime
     return {
       ...invoice,
+      client: clientObj ? { ...clientObj, createdAt: new Date(clientObj.createdAt) } : undefined,
       createdAt: new Date(invoice.createdAt),
       dueDate: invoice.dueDate ? new Date(invoice.dueDate) : undefined,
       paidAt: invoice.paidAt ? new Date(invoice.paidAt) : undefined,
@@ -73,12 +77,18 @@ export const invoiceService = {
   // Get all invoices
   getUserInvoices: async (): Promise<Invoice[]> => {
     const invoices = JSON.parse(localStorage.getItem('invoices') || '[]');
-    return invoices.map((invoice: Invoice) => ({
-      ...invoice,
-      createdAt: new Date(invoice.createdAt),
-      dueDate: invoice.dueDate ? new Date(invoice.dueDate) : undefined,
-      paidAt: invoice.paidAt ? new Date(invoice.paidAt) : undefined,
-    }));
+    // Load clients from localStorage
+    const clients = JSON.parse(localStorage.getItem('clients') || '[]');
+    return invoices.map((invoice: Invoice) => {
+      const clientObj = clients.find((c: any) => c.id === invoice.clientId);
+      return {
+        ...invoice,
+        client: clientObj ? { ...clientObj, createdAt: new Date(clientObj.createdAt) } : undefined,
+        createdAt: new Date(invoice.createdAt),
+        dueDate: invoice.dueDate ? new Date(invoice.dueDate) : undefined,
+        paidAt: invoice.paidAt ? new Date(invoice.paidAt) : undefined,
+      };
+    });
   },
 
   // Update invoice status

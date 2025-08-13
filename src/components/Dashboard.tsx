@@ -352,8 +352,10 @@ export const Dashboard: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-slate-900">{invoice.client.name}</div>
-                        {invoice.client.company && (
+                        <div className="text-sm font-medium text-slate-900">
+                          {invoice.client?.name || <span className="text-red-500">No client</span>}
+                        </div>
+                        {invoice.client?.company && (
                           <div className="text-sm text-slate-500">{invoice.client.company}</div>
                         )}
                       </td>
