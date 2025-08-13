@@ -153,27 +153,25 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                     }`}
                     title={isSidebarCollapsed ? item.name : ''}
                   >
-                    <div className={`flex items-center justify-center w-10 h-10 rounded-lg ${
-                      isActive(item.href) 
-                        ? 'bg-empire-600 text-white shadow-md' 
-                        : 'bg-slate-100 text-slate-600 group-hover:bg-empire-100 group-hover:text-empire-600'
-                    } transition-all duration-200 ${
-                      isSidebarCollapsed ? 'mx-auto' : 'mr-4'
-                    className={`flex items-center px-4 py-4 text-sm font-medium rounded-xl transition-all duration-200 group relative ${
-                      isActive(item.href)
-                        ? 'bg-gradient-to-r from-empire-50 to-empire-100 text-empire-700 border border-empire-200 shadow-sm'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                    }`}
-                      isSidebarCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'
-                    }`}>
-                      <div className="font-semibold">{item.name}</div>
-                      isActive(item.href) 
-                        ? 'bg-empire-600 text-white shadow-md' 
-                        : 'bg-slate-100 text-slate-600 group-hover:bg-empire-100 group-hover:text-empire-600'
+                    <div
+                      className={`flex items-center justify-center w-10 h-10 rounded-lg ${
+                        isActive(item.href)
+                          ? 'bg-empire-600 text-white shadow-md'
+                          : 'bg-slate-100 text-slate-600 group-hover:bg-empire-100 group-hover:text-empire-600'
+                      } transition-all duration-200 ${
+                        isSidebarCollapsed ? 'mx-auto' : 'mr-4'
+                      } ${
+                        isSidebarCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'
+                      }`}
+                    >
+                      {Icon && <Icon className="h-5 w-5" />}
+                    </div>
+                    {!isSidebarCollapsed && (
+                      <div className="font-semibold ml-2">{item.name}</div>
+                    )}
                     {isActive(item.href) && (
                       <div className="absolute right-2 w-2 h-2 bg-empire-600 rounded-full"></div>
                     )}
-                    
                     {isSidebarCollapsed && (
                       <div className="absolute left-full ml-4 px-3 py-2 bg-slate-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50 shadow-lg">
                         <div className="font-medium">{item.name}</div>
@@ -204,7 +202,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
             
             <div className="flex items-center space-x-4">
-          <header className="bg-white shadow-sm border-b border-slate-200 h-20 flex items-center justify-between px-8">
+          {/* Removed duplicate <header> opening tag to fix JSX error */}
               <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}

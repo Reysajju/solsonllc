@@ -342,7 +342,12 @@ export const Dashboard: React.FC = () => {
                           </div>
                           <div>
                             <div className="text-sm font-medium text-slate-900">{invoice.id}</div>
-                            <div className="text-sm text-slate-500">{invoice.createdAt.toLocaleDateString()}</div>
+                            <div className="text-sm text-slate-500">{
+                              (invoice.createdAt instanceof Date
+                                ? invoice.createdAt
+                                : new Date(invoice.createdAt)
+                              ).toLocaleDateString()
+                            }</div>
                           </div>
                         </div>
                       </td>
