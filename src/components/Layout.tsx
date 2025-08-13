@@ -29,9 +29,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const isPublicInvoice = location.pathname.startsWith('/invoice/');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true); // Start collapsed
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
-  const [notifications, setNotifications] = useState<any[]>([]);
 
   useEffect(() => {
     const loadUserProfile = async () => {
@@ -114,13 +112,15 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               isSidebarCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'
             }`}>
               <div className="relative">
-                <div className="h-12 w-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg">
+                <div className="h-12 w-12 bg-gradient-to-br from-empire-500 to-empire-600 rounded-xl flex items-center justify-center shadow-lg">
                   <Building2 className="h-7 w-7 text-white" />
                 </div>
               </div>
               <div>
-                <h1 className="text-xl font-bold text-white font-serif">Invoice Portal</h1>
-                <p className="text-primary-200 text-sm font-medium">Management System</p>
+                <>
+                  <h1 className="text-xl font-bold text-white font-serif">Magnates Empire</h1>
+                  <p className="text-empire-200 text-sm font-medium">Business Suite</p>
+                </>
               </div>
             </div>
             
@@ -148,30 +148,30 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                     to={item.href}
                     className={`flex items-center px-4 py-4 text-sm font-medium rounded-xl transition-all duration-200 group relative ${
                       isActive(item.href)
-                        ? 'bg-gradient-to-r from-primary-50 to-primary-100 text-primary-700 border border-primary-200 shadow-sm'
+                        ? 'bg-gradient-to-r from-empire-50 to-empire-100 text-empire-700 border border-empire-200 shadow-sm'
                         : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                     }`}
                     title={isSidebarCollapsed ? item.name : ''}
                   >
                     <div className={`flex items-center justify-center w-10 h-10 rounded-lg ${
                       isActive(item.href) 
-                        ? 'bg-primary-600 text-white shadow-md' 
-                        : 'bg-slate-100 text-slate-600 group-hover:bg-primary-100 group-hover:text-primary-600'
+                        ? 'bg-empire-600 text-white shadow-md' 
+                        : 'bg-slate-100 text-slate-600 group-hover:bg-empire-100 group-hover:text-empire-600'
                     } transition-all duration-200 ${
                       isSidebarCollapsed ? 'mx-auto' : 'mr-4'
-                    }`}>
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    
-                    <div className={`transition-all duration-300 ${
+                    className={`flex items-center px-4 py-4 text-sm font-medium rounded-xl transition-all duration-200 group relative ${
+                      isActive(item.href)
+                        ? 'bg-gradient-to-r from-empire-50 to-empire-100 text-empire-700 border border-empire-200 shadow-sm'
+                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                    }`}
                       isSidebarCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'
                     }`}>
                       <div className="font-semibold">{item.name}</div>
-                      <div className="text-xs text-slate-500 mt-0.5">{item.description}</div>
-                    </div>
-                    
+                      isActive(item.href) 
+                        ? 'bg-empire-600 text-white shadow-md' 
+                        : 'bg-slate-100 text-slate-600 group-hover:bg-empire-100 group-hover:text-empire-600'
                     {isActive(item.href) && (
-                      <div className="absolute right-2 w-2 h-2 bg-primary-600 rounded-full"></div>
+                      <div className="absolute right-2 w-2 h-2 bg-empire-600 rounded-full"></div>
                     )}
                     
                     {isSidebarCollapsed && (
@@ -198,20 +198,20 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <input
                   type="text"
                   placeholder="Search invoices, clients..."
-                  className="pl-10 pr-4 py-2 w-80 rounded-xl border border-slate-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-200"
+                  className="pl-10 pr-4 py-2 w-80 rounded-xl border border-slate-200 focus:border-empire-500 focus:ring-2 focus:ring-empire-200 transition-all duration-200"
                 />
               </div>
             </div>
             
             <div className="flex items-center space-x-4">
-              {/* User Menu */}
+          <header className="bg-white shadow-sm border-b border-slate-200 h-20 flex items-center justify-between px-8">
               <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   className="flex items-center space-x-3 p-2 rounded-xl hover:bg-slate-50 transition-colors"
                 >
                   <div className="h-8 w-8 bg-gradient-to-br from-primary-600 to-primary-700 rounded-lg flex items-center justify-center text-white font-bold text-sm relative">
-                    {displayName.charAt(0).toUpperCase()}
+                  {/* ...existing code... */}
                     {isAdmin && (
                       <div className="absolute -top-1 -right-1 h-3 w-3 bg-emerald-500 rounded-full flex items-center justify-center">
                         <div className="h-1.5 w-1.5 bg-white rounded-full"></div>

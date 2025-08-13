@@ -1,100 +1,46 @@
-import { supabase } from '../lib/supabase';
 import { Client } from '../types';
 
 export const clientService = {
   // Create new client
-  async createClient(clientData: {
-    name: string;
-    company?: string;
-    email: string;
-    address: string;
-  }): Promise<Client> {
-    const user = await supabase.auth.getUser();
-    if (!user.data.user) throw new Error('User not authenticated');
-
-    const { data, error } = await supabase
-      .from('clients')
-      .insert({
-        user_id: user.data.user.id,
-        name: clientData.name,
-        company: clientData.company,
-        email: clientData.email,
-        address: clientData.address,
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    return {
-      id: data.id,
-      name: data.name,
-      company: data.company,
-      email: data.email,
-      address: data.address,
-      createdAt: new Date(data.created_at),
+  createClient: async (clientData: { name: string; company?: string; email: string; address: string }): Promise<Client> => {
+    const clients = JSON.parse(localStorage.getItem('clients') || '[]');
+    const newClient: Client = {
+      id: Date.now().toString(),
+      name: clientData.name,
+      company: clientData.company,
+      email: clientData.email,
+      address: clientData.address,
+      createdAt: new Date(),
     };
+    clients.unshift(newClient);
+    localStorage.setItem('clients', JSON.stringify(clients));
+    return newClient;
   },
-
-  // Get all clients for current user
-  async getUserClients(): Promise<Client[]> {
-    const user = await supabase.auth.getUser();
-    if (!user.data.user) throw new Error('User not authenticated');
-
-    const { data, error } = await supabase
-      .from('clients')
-      .select('*')
-      .eq('user_id', user.data.user.id)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-
-    return data.map(client => ({
-      id: client.id,
-      name: client.name,
-      company: client.company,
-      email: client.email,
-      address: client.address,
-      createdAt: new Date(client.created_at),
+  // Get all clients
+  getUserClients: async (): Promise<Client[]> => {
+    const clients = JSON.parse(localStorage.getItem('clients') || '[]');
+    return clients.map((client: any) => ({
+      ...client,
+      createdAt: new Date(client.createdAt),
     }));
   },
-
   // Update client
-  async updateClient(id: string, clientData: {
-    name?: string;
-    company?: string;
-    email?: string;
-    address?: string;
-  }): Promise<Client> {
-    const { data, error } = await supabase
-      .from('clients')
-      .update({
-        ...clientData,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    return {
-      id: data.id,
-      name: data.name,
-      company: data.company,
-      email: data.email,
-      address: data.address,
-      createdAt: new Date(data.created_at),
+  updateClient: async (id: string, clientData: { name?: string; company?: string; email?: string; address?: string }): Promise<Client> => {
+    const clients = JSON.parse(localStorage.getItem('clients') || '[]');
+    const idx = clients.findIndex((c: Client) => c.id === id);
+    if (idx === -1) throw new Error('Client not found');
+    clients[idx] = {
+      ...clients[idx],
+      ...clientData,
+      createdAt: new Date(clients[idx].createdAt),
     };
+    localStorage.setItem('clients', JSON.stringify(clients));
+    return clients[idx];
   },
-
   // Delete client
-  async deleteClient(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('clients')
-      .delete()
-      .eq('id', id);
-
-    if (error) throw error;
+  deleteClient: async (id: string): Promise<void> => {
+    const clients = JSON.parse(localStorage.getItem('clients') || '[]');
+    const filtered = clients.filter((c: Client) => c.id !== id);
+    localStorage.setItem('clients', JSON.stringify(filtered));
   },
 };

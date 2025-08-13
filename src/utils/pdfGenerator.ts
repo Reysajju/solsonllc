@@ -25,38 +25,38 @@ export const generateInvoicePDF = (invoice: Invoice): void => {
   };
 
   // Header - Company Logo and Info
-  doc.setFillColor(37, 99, 235); // Primary blue
+  doc.setFillColor(218, 165, 32); // Gold for Magnates Empire
   doc.rect(0, 0, pageWidth, 40, 'F');
-  
-  // Company logo (simple rectangle with building icon)
+
+  // Company logo (simple crown icon)
   doc.setFillColor(255, 255, 255);
-  doc.rect(margin, 10, 20, 20, 'F');
-  doc.setTextColor(37, 99, 235);
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.text('B', margin + 8, 24);
+  doc.ellipse(margin + 10, 20, 10, 8, 'F'); // Crown base
+  doc.setFillColor(218, 165, 32);
+  doc.circle(margin + 5, 14, 2, 'F');
+  doc.circle(margin + 10, 12, 2, 'F');
+  doc.circle(margin + 15, 14, 2, 'F');
 
   // Company name and details
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
-  doc.text('Invoice Portal', margin + 30, 20);
-  
+  doc.text('Magnates Empire', margin + 30, 20);
+
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text('Professional Invoice Management', margin + 30, 28);
+  doc.text('Business Suite', margin + 30, 28);
 
   // Company contact info (right side)
   const contactInfo = [
-    '1234 Business Ave, Suite 100',
-    'New York, NY 10001',
-    'billing@yourcompany.com',
-    '(555) 123-4567'
+    'Empire Tower, 88 Crown St',
+    'Metropolis, NY 10001',
+    'billing@magnatesempire.com',
+    '(555) 987-6543'
   ];
-  
+
   let contactY = 12;
   contactInfo.forEach(info => {
-    doc.text(info, pageWidth - margin - 60, contactY);
+    doc.text(info, pageWidth - margin - 70, contactY);
     contactY += 5;
   });
 
@@ -298,7 +298,7 @@ export const generateInvoicePDF = (invoice: Invoice): void => {
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.text('Thank you for your business!', margin, footerY);
-  doc.text('Questions? Contact us at support@yourcompany.com | (555) 123-4567', margin, footerY + 6);
+  doc.text('Questions? Contact us at support@magnatesempire.com | (555) 987-6543', margin, footerY + 6);
   
   // Page number and generation date
   doc.text(`Generated on ${new Date().toLocaleDateString()}`, pageWidth - margin - 50, footerY);

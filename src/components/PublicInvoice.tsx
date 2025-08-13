@@ -328,30 +328,30 @@ export const PublicInvoice: React.FC = () => {
                 <h3 className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-4">From</h3>
                 <div className="bg-slate-50 rounded-xl p-6">
                   <div className="flex items-center space-x-3 mb-4">
-                    <div className="h-12 w-12 bg-gradient-to-br from-royal-600 to-royal-700 rounded-xl flex items-center justify-center shadow-lg">
-                      <span className="text-white font-bold text-xl">S</span>
+                    <div className="h-12 w-12 bg-gradient-to-br from-empire-600 to-empire-700 rounded-xl flex items-center justify-center shadow-lg">
+                      <span className="text-white font-bold text-xl">M</span>
                     </div>
                     <div>
-                      <h2 className="text-xl font-bold text-slate-900">Solson LLC</h2>
-                      <p className="text-slate-600 text-sm">Professional Services</p>
+                      <h2 className="text-xl font-bold text-slate-900">Magnates Empire</h2>
+                      <p className="text-slate-600 text-sm">Business Suite</p>
                     </div>
                   </div>
                   <div className="space-y-2 text-sm text-slate-600">
                     <div className="flex items-center">
                       <Building2 className="h-4 w-4 mr-2 flex-shrink-0" />
-                      <span>1234 Business Ave, Suite 100</span>
+                      <span>Empire Tower, 88 Crown St</span>
                     </div>
                     <div className="flex items-center">
                       <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
-                      <span>New York, NY 10001</span>
+                      <span>Metropolis, NY 10001</span>
                     </div>
                     <div className="flex items-center">
                       <Mail className="h-4 w-4 mr-2 flex-shrink-0" />
-                      <span>billing@solsonllc.com</span>
+                      <span>billing@magnatesempire.com</span>
                     </div>
                     <div className="flex items-center">
                       <Phone className="h-4 w-4 mr-2 flex-shrink-0" />
-                      <span>(555) 123-4567</span>
+                      <span>(555) 987-6543</span>
                     </div>
                   </div>
                 </div>
@@ -543,11 +543,11 @@ export const PublicInvoice: React.FC = () => {
               <p className="font-medium">Thank you for your business!</p>
               <p className="mt-2">If you have any questions about this invoice, please contact us at:</p>
               <p className="mt-1">
-                <a href="mailto:support@solsonllc.com" className="text-royal-600 hover:text-royal-800 transition-colors">
-                  support@solsonllc.com
+                <a href="mailto:support@magnatesempire.com" className="text-empire-600 hover:text-empire-800 transition-colors">
+                  support@magnatesempire.com
                 </a> | 
-                <a href="tel:+15551234567" className="text-royal-600 hover:text-royal-800 transition-colors ml-2">
-                  (555) 123-4567
+                <a href="tel:+15559876543" className="text-empire-600 hover:text-empire-800 transition-colors ml-2">
+                  (555) 987-6543
                 </a>
               </p>
             </div>
