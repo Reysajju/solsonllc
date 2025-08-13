@@ -1,8 +1,14 @@
 import { supabase } from '../lib/supabase';
 
-// Production: Generate Stripe payment link via backend API
-async function generateStripePaymentLink(amount: number, currency: string = 'usd', description: string = ''): Promise<string> {
-  const response = await fetch('/api/create-payment-link', {
+// Generate Stripe payment link via Netlify Function or external backend
+async function generateStripePaymentLink(amount: number, currency: string = 'usd', description: string = '', method: 'netlify' | 'external' = 'netlify'): Promise<string> {
+  let endpoint = '';
+  if (method === 'netlify') {
+    endpoint = '/.netlify/functions/create-payment-link';
+  } else {
+    endpoint = 'https://your-backend-url.com/api/create-payment-link'; // Replace with your deployed backend URL
+  }
+  const response = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ amount, currency, description }),
