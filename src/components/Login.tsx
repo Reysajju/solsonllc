@@ -3,13 +3,15 @@ import { Building2, Mail, Lock, ArrowRight, Shield, Eye, EyeOff } from 'lucide-r
 import { useAuthContext } from './AuthProvider';
 
 export const Login: React.FC = () => {
-  const { signIn } = useAuthContext();
+  const { signIn, signUp } = useAuthContext();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [captcha, setCaptcha] = useState({ num1: 0, num2: 0, answer: '' });
+  const [isSignup, setIsSignup] = useState(false);
 
   // Generate simple math captcha
   React.useEffect(() => {
@@ -35,8 +37,13 @@ export const Login: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const { error } = await signIn(email, password);
-      if (error) throw error;
+      if (isSignup) {
+        const { error } = await signUp(email, password, fullName);
+        if (error) throw error;
+      } else {
+        const { error } = await signIn(email, password);
+        if (error) throw error;
+      }
     } catch (error: any) {
       setError(error.message || 'An error occurred during authentication');
       // Generate new captcha on error
@@ -70,6 +77,21 @@ export const Login: React.FC = () => {
             {error && (
               <div className="bg-red-500 bg-opacity-10 border border-red-400 text-red-300 px-4 py-3 rounded-xl text-sm">
                 {error}
+              </div>
+            )}
+            {isSignup && (
+              <div>
+                <label className="block text-sm font-semibold text-white mb-3">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="block w-full rounded-xl border-0 bg-white bg-opacity-10 backdrop-blur-sm text-white placeholder-primary-300 shadow-sm focus:bg-opacity-20 focus:ring-2 focus:ring-primary-400 focus:ring-opacity-50 transition-all duration-200 py-4 mb-2"
+                  placeholder="Enter your full name"
+                  required
+                />
               </div>
             )}
             <div>
@@ -135,14 +157,21 @@ export const Login: React.FC = () => {
               {isLoading ? (
                 <>
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-900 mr-3"></div>
-                  Signing In...
+                  {isSignup ? 'Signing Up...' : 'Signing In...'}
                 </>
               ) : (
                 <>
-                  Sign In to Portal
+                  {isSignup ? 'Sign Up' : 'Sign In to Portal'}
                   <ArrowRight className="ml-3 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </>
               )}
+            </button>
+            <button
+              type="button"
+              className="w-full mt-2 flex items-center justify-center px-6 py-3 border border-primary-400 text-lg font-semibold rounded-xl text-primary-400 bg-transparent hover:bg-primary-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-400 transition-all duration-200 shadow-lg hover:shadow-xl"
+              onClick={() => { setIsSignup(!isSignup); setError(''); }}
+            >
+              {isSignup ? 'Already have an account? Sign In' : 'New user? Sign Up'}
             </button>
           </form>
           {/* Security Features */}

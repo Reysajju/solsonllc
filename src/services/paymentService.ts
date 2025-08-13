@@ -1,6 +1,20 @@
 import { supabase } from '../lib/supabase';
 
+// Production: Generate Stripe payment link via backend API
+async function generateStripePaymentLink(amount: number, currency: string = 'usd', description: string = ''): Promise<string> {
+  const response = await fetch('/api/create-payment-link', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ amount, currency, description }),
+  });
+  const data = await response.json();
+  if (data.url) return data.url;
+  throw new Error(data.error || 'Failed to generate payment link');
+}
+
 export const paymentService = {
+  // Generate Stripe payment link
+  generateStripePaymentLink,
   // Process payment (simulation for demo)
   async processPayment(invoiceId: string, paymentData: any): Promise<{ success: boolean; transactionId?: string; error?: string }> {
     try {

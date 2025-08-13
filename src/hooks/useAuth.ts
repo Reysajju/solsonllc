@@ -1,53 +1,60 @@
 import { useState, useEffect } from 'react';
-import { User } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
-
 export const useAuth = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<{ email: string; fullName: string } | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
-
-    return () => subscription.unsubscribe();
+    // Check localStorage for user session
+    const session = localStorage.getItem('userSession');
+    if (session) {
+      setUser(JSON.parse(session));
+    }
+    setLoading(false);
   }, []);
 
+  // Simple encryption (not secure for production)
+  function encrypt(text: string) {
+    return btoa(text.split('').reverse().join(''));
+  }
+  function decrypt(text: string) {
+    return atob(text).split('').reverse().join('');
+  }
+
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { data, error };
+    setLoading(true);
+    const users = JSON.parse(localStorage.getItem('users') || '{}');
+    if (users[email] && users[email].password === encrypt(password)) {
+      const session = { email, fullName: users[email].fullName };
+      localStorage.setItem('userSession', JSON.stringify(session));
+      setUser(session);
+      setLoading(false);
+      return { data: session, error: null };
+    } else {
+      setLoading(false);
+      return { data: null, error: { message: 'Invalid email or password' } };
+    }
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-        },
-      },
-    });
-    return { data, error };
+    setLoading(true);
+    const users = JSON.parse(localStorage.getItem('users') || '{}');
+    if (users[email]) {
+      setLoading(false);
+      return { data: null, error: { message: 'User already exists' } };
+    }
+    users[email] = { password: encrypt(password), fullName };
+    localStorage.setItem('users', JSON.stringify(users));
+    const session = { email, fullName };
+    localStorage.setItem('userSession', JSON.stringify(session));
+    setUser(session);
+    setLoading(false);
+    return { data: session, error: null };
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    return { error };
+    localStorage.removeItem('userSession');
+    setUser(null);
+    return { error: null };
   };
 
   return {
